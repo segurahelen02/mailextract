@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MailExtract PRO</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
   --bg:#080810;--s1:#0f0f1e;--s2:#14142a;--s3:#1a1a35;
@@ -36,8 +37,8 @@ main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .bot-del:hover{color:var(--red)}
 .field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
 .field label{font-size:11px;color:var(--muted)}
-input,select,textarea{background:var(--s2);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;width:100%}
-input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+input,select{background:var(--s2);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;width:100%}
+input:focus,select:focus{border-color:var(--accent)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .btn{padding:9px 14px;background:var(--s2);border:1px solid var(--border);color:var(--text);font-size:12px;border-radius:6px;cursor:pointer;transition:all .15s;text-align:center}
 .btn:hover{border-color:var(--accent);color:var(--accent2)}
@@ -80,12 +81,6 @@ tbody tr:hover{background:var(--s2)}
 .pbar.on{display:block}
 .pbar-fill{height:100%;background:linear-gradient(90deg,var(--accent),#a855f7,var(--cyan));animation:pb 1.5s infinite}
 @keyframes pb{0%{width:0;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0;margin-left:100%}}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
-.modal-bg.open{display:flex}
-.modal{background:var(--s1);border:1px solid var(--border2);border-radius:10px;padding:22px;width:460px;max-width:100%;display:flex;flex-direction:column;gap:12px}
-.modal h3{font-size:15px;font-weight:600}
-.note{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:11.5px;color:var(--muted);line-height:1.7}
-.mbtns{display:flex;gap:8px;justify-content:flex-end}
 .toast{position:fixed;bottom:20px;right:20px;z-index:600;background:var(--s2);border:1px solid var(--border);padding:12px 16px;border-radius:6px;font-size:12px;display:none;max-width:360px;box-shadow:0 10px 40px rgba(0,0,0,.7)}
 .toast.show{display:block;animation:ts .2s}
 @keyframes ts{from{transform:translateY(8px);opacity:0}}
@@ -102,12 +97,10 @@ tbody tr:hover{background:var(--s2)}
 
 <div class="body">
 <aside>
-
   <div class="sec">
     <h3>Bot Accounts</h3>
     <div id="botList"></div>
-    <button class="btn" style="width:100%;margin-top:6px" onclick="openAddBot()">＋ Add bot</button>
-    <button class="btn" style="width:100%;margin-top:6px" onclick="testCurrentBot()">🔌 Test connection</button>
+    <button class="btn" style="width:100%;margin-top:6px" onclick="addBot()">＋ Add bot</button>
   </div>
 
   <div class="sec">
@@ -125,7 +118,7 @@ tbody tr:hover{background:var(--s2)}
   </div>
 
   <div class="sec">
-    <h3>Fields</h3>
+    <h3>Fields (CSV)</h3>
     <div class="cblist" id="fieldList">
       <label class="cbitem"><input type="checkbox" value="ip" checked> IP</label>
       <label class="cbitem"><input type="checkbox" value="fromName" checked> From name</label>
@@ -155,7 +148,7 @@ tbody tr:hover{background:var(--s2)}
     <button class="tbtn" onclick="copyIPs()">📌 IPs</button>
     <button class="tbtn" onclick="copyDomains()">🌐 Domains</button>
     <button class="tbtn" onclick="copyEmails()">✉️ Emails</button>
-    <button class="tbtn primary" onclick="exportSheet()">↗ Sheet</button>
+    <button class="tbtn primary" onclick="downloadCSV()">⬇ CSV file</button>
   </div>
 
   <div class="stats" id="stats" style="display:none">
@@ -175,105 +168,92 @@ tbody tr:hover{background:var(--s2)}
   <div class="empty" id="empty">
     <div class="empty-icon">✉️</div>
     <h3>No data yet</h3>
-    <p>Open this app signed in as your bot and click Allow, then click "Extract Emails".</p>
+    <p>Click "Add bot", choose the Gmail account in the Google popup, click Allow, then "Extract Emails".</p>
   </div>
 </main>
-</div>
-
-<!-- add bot modal -->
-<div class="modal-bg" id="modalBg">
-  <div class="modal">
-    <h3>Add Bot Account</h3>
-    <div class="note">Enter the bot's Gmail address. Google asks you to sign in with that bot (once), click <b>Allow</b>, and you come back to this same page connected to it.</div>
-    <div class="field"><label>Bot Gmail</label><input id="botEmail" placeholder="bot01@gmail.com"></div>
-    <div class="mbtns">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn primary" style="width:auto" onclick="saveBot()">Connect</button>
-    </div>
-  </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
+/* ═══════════ CONFIG: paste your OAuth Client ID here ═══════════ */
+var CLIENT_ID = 'PASTE_YOUR_CLIENT_ID_HERE.apps.googleusercontent.com';
+var SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
+var GMAIL = 'https://gmail.googleapis.com/gmail/v1/users/me/';
+
 /* ═══════════ STATE ═══════════ */
 var bots = JSON.parse(localStorage.getItem('mx_bots') || '[]');   // [{email}]
-var me = '', appUrl = '';
+var tokens = {};                                                  // email -> {token, exp}
+var active = localStorage.getItem('mx_active') || '';
 var allData = [], filteredData = [], sortKey = '', sortAsc = true;
 
-/* ═══════════ SERVER BRIDGE ═══════════ */
-function callBot(fn, args, onSuccess, onError) {
-  try {
-    google.script.run
-      .withSuccessHandler(function (r) { onSuccess && onSuccess(r); })
-      .withFailureHandler(function (e) { onError && onError({ message: (e && e.message) || String(e) }); })
-      [fn].apply(null, args || []);
-  } catch (err) {
-    onError && onError({ message: err.message });
+/* ═══════════ GOOGLE LOGIN (popup) ═══════════ */
+function requestToken(hint, forceChooser, done) {
+  if (!window.google || !google.accounts || !google.accounts.oauth2) {
+    return showToast('⚠ Google script not loaded yet, wait 2 seconds');
   }
+  var cfg = {
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: function (resp) {
+      if (resp.error) return showToast('❌ ' + (resp.error_description || resp.error));
+      // find which account was chosen
+      updateStatus('loading', 'checking…');
+      api('profile', resp.access_token).then(function (p) {
+        var email = p.emailAddress.toLowerCase();
+        tokens[email] = { token: resp.access_token, exp: Date.now() + (resp.expires_in - 60) * 1000 };
+        if (!bots.some(function (b) { return b.email === email; })) bots.push({ email: email });
+        saveBots();
+        setActive(email);
+        showToast('✅ Connected: ' + email);
+        done && done(email);
+      }).catch(function (e) { updateStatus('err', 'error'); showToast('❌ ' + e.message); });
+    },
+    error_callback: function (err) {
+      showToast('⚠ Popup closed or blocked' + (err && err.type ? ' (' + err.type + ')' : ''));
+    }
+  };
+  if (hint) cfg.hint = hint;
+  if (forceChooser) cfg.prompt = 'select_account';
+  google.accounts.oauth2.initTokenClient(cfg).requestAccessToken();
 }
 
-/* ═══════════ BOT MANAGER ═══════════ */
-function renderBots() {
-  var html = '<div class="bot-item active"><div class="dot ok"></div>' +
-             '<span class="bot-email">' + esc(me || 'connecting…') + '</span></div>';
-  bots.forEach(function (b, i) {
-    if (b.email === me) return;
-    html += '<div class="bot-item" onclick="openBot(' + i + ')" title="Open as this account">' +
-            '<div class="dot"></div><span class="bot-email">' + esc(b.email) + '</span>' +
-            '<button class="bot-del" onclick="deleteBot(event,' + i + ')" title="Remove">×</button></div>';
-  });
-  document.getElementById('botList').innerHTML = html;
+function addBot() { requestToken('', true); }
+
+function switchBot(email) {
+  var t = tokens[email];
+  if (t && t.exp > Date.now()) return setActive(email);
+  requestToken(email, false);     // silent-ish: popup closes by itself if already allowed
 }
 
-/* Switch to a bot IN THE SAME TAB via Google's account chooser (no broken authuser URL) */
-function goBot(email) {
-  if (!appUrl) return showToast('⚠ App URL not loaded yet, try again in 2 seconds');
-  var url = 'https://accounts.google.com/AccountChooser?Email=' + encodeURIComponent(email) +
-            '&continue=' + encodeURIComponent(appUrl);
-  window.open(url, '_top');
+function setActive(email) {
+  active = email;
+  localStorage.setItem('mx_active', email);
+  updateStatus('ok', email);
+  renderBots();
 }
-function openBot(i) { goBot(bots[i].email); }
+
 function deleteBot(e, i) {
   e.stopPropagation();
-  bots.splice(i, 1); saveBots(); renderBots();
+  var em = bots[i].email;
+  if (tokens[em] && window.google) google.accounts.oauth2.revoke(tokens[em].token, function () {});
+  delete tokens[em];
+  bots.splice(i, 1); saveBots();
+  if (active === em) { active = ''; updateStatus('', 'not connected'); }
+  renderBots();
 }
 function saveBots() { localStorage.setItem('mx_bots', JSON.stringify(bots)); }
 
-function openAddBot() {
-  document.getElementById('modalBg').classList.add('open');
-  document.getElementById('botEmail').focus();
-}
-function closeModal() {
-  document.getElementById('modalBg').classList.remove('open');
-  document.getElementById('botEmail').value = '';
-}
-
-function saveBot() {
-  var email = document.getElementById('botEmail').value.trim().toLowerCase();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showToast('⚠ Enter a valid Gmail address');
-  if (!bots.some(function (b) { return b.email === email; })) bots.push({ email: email });
-  saveBots(); closeModal(); renderBots();
-  goBot(email);
-}
-
-function testCurrentBot() {
-  updateStatus('loading', 'testing…');
-  callBot('checkAuth', [], function (r) {
-    if (r && r.authed) {
-      me = r.email;
-      if (me && !bots.some(function (b) { return b.email === me; })) { bots.push({ email: me }); saveBots(); }
-      updateStatus('ok', me || 'connected');
-      showToast('✅ Connected as ' + me);
-    } else {
-      updateStatus('err', 'auth failed');
-      showToast('❌ ' + ((r && r.error) || 'Auth failed'));
-    }
-    renderBots();
-  }, function (e) {
-    updateStatus('err', 'error');
-    showToast('❌ ' + e.message);
-  });
+function renderBots() {
+  var el = document.getElementById('botList');
+  if (!bots.length) { el.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:6px 0">No bots yet</div>'; return; }
+  el.innerHTML = bots.map(function (b, i) {
+    var live = tokens[b.email] && tokens[b.email].exp > Date.now();
+    return '<div class="bot-item' + (b.email === active ? ' active' : '') + '" onclick="switchBot(\'' + esc(b.email) + '\')">' +
+      '<div class="dot' + (live ? ' ok' : '') + '"></div>' +
+      '<span class="bot-email">' + esc(b.email) + '</span>' +
+      '<button class="bot-del" onclick="deleteBot(event,' + i + ')" title="Remove">×</button></div>';
+  }).join('');
 }
 
 function updateStatus(state, text) {
@@ -281,8 +261,32 @@ function updateStatus(state, text) {
   document.getElementById('status').textContent = text || 'not connected';
 }
 
-/* ═══════════ EXTRACTION ═══════════ */
-function runExtraction() {
+/* ═══════════ GMAIL API ═══════════ */
+function api(path, token) {
+  return fetch(GMAIL + path, { headers: { Authorization: 'Bearer ' + token } }).then(function (r) {
+    if (!r.ok) return r.text().then(function (t) { throw new Error('Gmail ' + r.status + ': ' + t.substring(0, 160)); });
+    return r.json();
+  });
+}
+
+function buildQuery(c) {
+  var m = { Spam: 'in:spam', Inbox: 'in:inbox', Promotions: 'category:promotions', Updates: 'category:updates',
+            Social: 'category:social', Sent: 'in:sent', All: '' };
+  return m[c] !== undefined ? m[c] : '';
+}
+
+var HDRS = ['From', 'To', 'Cc', 'Subject', 'Reply-To', 'Return-Path', 'Message-ID', 'Date', 'Received', 'Authentication-Results'];
+var HDR_PARAMS = HDRS.map(function (h) { return 'metadataHeaders=' + encodeURIComponent(h); }).join('&');
+
+async function runExtraction() {
+  var t = tokens[active];
+  if (!active) return showToast('⚠ Click "Add bot" first');
+  if (!t || t.exp <= Date.now()) {
+    showToast('⏳ Session expired: reconnecting, then click Extract again');
+    return requestToken(active, false);
+  }
+  var tok = t.token;
+
   var btn = document.getElementById('extractBtn');
   btn.disabled = true; btn.textContent = '⏳ Extracting…';
   document.getElementById('pbar').classList.add('on');
@@ -291,33 +295,86 @@ function runExtraction() {
   document.getElementById('toolbar').style.display = 'none';
   document.getElementById('stats').style.display = 'none';
 
-  var cfg = {
-    startFrom: parseInt(document.getElementById('startFrom').value, 10) || 1,
-    count: parseInt(document.getElementById('countInput').value, 10) || 40,
-    category: document.getElementById('categorySelect').value
-  };
+  try {
+    var cat = document.getElementById('categorySelect').value;
+    var count = Math.min(parseInt(document.getElementById('countInput').value, 10) || 40, 500);
+    var start = Math.max(1, parseInt(document.getElementById('startFrom').value, 10) || 1) - 1;
+    var q = buildQuery(cat), need = start + count, ids = [], pt = '';
 
-  callBot('extractEmails', [cfg], function (r) {
-    resetBtn(btn);
-    if (r && r.success && r.data) {
-      allData = r.data; filteredData = allData.slice();
-      renderAll();
-      showToast('✅ ' + allData.length + ' emails extracted');
-    } else {
-      document.getElementById('empty').style.display = 'flex';
-      showToast('❌ ' + ((r && r.error) || 'Extraction failed'));
+    while (ids.length < need) {
+      var url = 'messages?maxResults=' + Math.min(500, need - ids.length) +
+                (q ? '&q=' + encodeURIComponent(q) : '') +
+                ((cat === 'Spam' || cat === 'All') ? '&includeSpamTrash=true' : '') +
+                (pt ? '&pageToken=' + encodeURIComponent(pt) : '');
+      var r = await api(url, tok);
+      var batch = r.messages || [];
+      ids = ids.concat(batch);
+      pt = r.nextPageToken;
+      if (!pt || !batch.length) break;
     }
-  }, function (e) {
-    resetBtn(btn);
+    ids = ids.slice(start, start + count);
+
+    var rows = [];
+    for (var i = 0; i < ids.length; i += 10) {
+      var chunk = ids.slice(i, i + 10);
+      var res = await Promise.all(chunk.map(function (m) {
+        return api('messages/' + m.id + '?format=metadata&' + HDR_PARAMS, tok)
+          .then(buildRow).catch(function () { return null; });
+      }));
+      res.forEach(function (x) { if (x) rows.push(x); });
+      updateStatus('loading', rows.length + '/' + ids.length);
+    }
+
+    allData = rows; filteredData = rows.slice();
+    updateStatus('ok', active);
+    if (rows.length) { renderAll(); showToast('✅ ' + rows.length + ' emails extracted'); }
+    else { document.getElementById('empty').style.display = 'flex'; showToast('No emails found'); }
+  } catch (e) {
+    updateStatus('err', 'error');
     document.getElementById('empty').style.display = 'flex';
     showToast('❌ ' + e.message);
-  });
-}
-
-function resetBtn(btn) {
+  }
   document.getElementById('pbar').classList.remove('on');
   btn.disabled = false; btn.textContent = '⚡ Extract Emails';
 }
+
+function buildRow(msg) {
+  var h = {}, received = '';
+  ((msg.payload && msg.payload.headers) || []).forEach(function (x) {
+    var n = x.name.toLowerCase();
+    if (n === 'received') received += ' ' + x.value;
+    else if (!(n in h)) h[n] = x.value;
+  });
+  var from = h['from'] || '';
+  var email = extractEmail(from), domain = extractDomain(email);
+  var auth = h['authentication-results'] || '';
+  var ips = extractIPs(received);
+  var L = msg.labelIds || [];
+  var cat = L.indexOf('SPAM') > -1 ? 'Spam' : L.indexOf('INBOX') > -1 ? 'Inbox'
+          : L.indexOf('CATEGORY_PROMOTIONS') > -1 ? 'Promotions' : L.indexOf('CATEGORY_UPDATES') > -1 ? 'Updates'
+          : L.indexOf('CATEGORY_SOCIAL') > -1 ? 'Social' : L.indexOf('SENT') > -1 ? 'Sent' : 'Other';
+  var date = '';
+  try { date = new Date(parseInt(msg.internalDate, 10)).toISOString(); } catch (e) {}
+  return {
+    category: cat, ip: ips[0] || '', allIPs: ips.join(', '), domain: domain,
+    fromName: extractName(from), fromEmail: email, fromDomain: domain,
+    subject: h['subject'] || '', to: h['to'] || '', cc: h['cc'] || '',
+    replyTo: h['reply-to'] || '', returnPath: h['return-path'] || '', messageId: h['message-id'] || '',
+    spf: authField(auth, 'spf'), dkim: authField(auth, 'dkim'), dmarc: authField(auth, 'dmarc'),
+    date: date, snippet: msg.snippet || ''
+  };
+}
+function authField(s, f) { if (!s) return 'none'; var m = s.match(new RegExp(f + '=([a-zA-Z]+)', 'i')); return m ? m[1].toLowerCase() : 'none'; }
+function extractIPs(text) {
+  var set = {}, re = /\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g, m;
+  while ((m = re.exec(text)) !== null) {
+    if (!/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(m[1])) set[m[1]] = true;
+  }
+  return Object.keys(set);
+}
+function extractEmail(raw) { var m = raw.match(/<([^>]+)>/); return m ? m[1].trim() : raw.trim(); }
+function extractName(raw) { var m = raw.match(/^(.+?)\s*</); return m ? m[1].replace(/['"]/g, '').trim() : raw.trim(); }
+function extractDomain(e) { var p = e.split('@'); return p.length > 1 ? p[1].toLowerCase() : ''; }
 
 /* ═══════════ TABLE ═══════════ */
 var COLS = [
@@ -334,26 +391,22 @@ var COLS = [
 ];
 
 function renderAll() {
-  updateStats();
-  renderTable(filteredData);
+  updateStats(); renderTable(filteredData);
   document.getElementById('toolbar').style.display = 'flex';
   document.getElementById('stats').style.display = 'flex';
   document.getElementById('tableWrap').style.display = 'block';
 }
-
 function updateStats() {
   var d = allData;
+  function n(f) { return d.filter(f).length; }
   document.getElementById('sTot').textContent = d.length;
-  document.getElementById('sSpf').textContent = d.filter(function (r) { return r.spf === 'pass'; }).length;
-  document.getElementById('sDkim').textContent = d.filter(function (r) { return r.dkim === 'pass'; }).length;
-  document.getElementById('sDmarc').textContent = d.filter(function (r) { return r.dmarc === 'pass'; }).length;
-  document.getElementById('sFail').textContent = d.filter(function (r) { return r.spf === 'fail' || r.dkim === 'fail' || r.dmarc === 'fail'; }).length;
-  var ips = {}, doms = {};
-  d.forEach(function (r) { if (r.ip) ips[r.ip] = 1; if (r.fromDomain) doms[r.fromDomain] = 1; });
-  document.getElementById('sIPs').textContent = Object.keys(ips).length;
-  document.getElementById('sDoms').textContent = Object.keys(doms).length;
+  document.getElementById('sSpf').textContent = n(function (r) { return r.spf === 'pass'; });
+  document.getElementById('sDkim').textContent = n(function (r) { return r.dkim === 'pass'; });
+  document.getElementById('sDmarc').textContent = n(function (r) { return r.dmarc === 'pass'; });
+  document.getElementById('sFail').textContent = n(function (r) { return r.spf === 'fail' || r.dkim === 'fail' || r.dmarc === 'fail'; });
+  document.getElementById('sIPs').textContent = uniq(d.map(function (r) { return r.ip; })).length;
+  document.getElementById('sDoms').textContent = uniq(d.map(function (r) { return r.fromDomain; })).length;
 }
-
 function renderTable(data) {
   document.getElementById('countBadge').textContent = data.length + ' rows';
   if (!data.length) {
@@ -361,15 +414,10 @@ function renderTable(data) {
     document.getElementById('tbody').innerHTML = '<tr><td style="text-align:center;padding:28px;color:var(--muted)">No results</td></tr>';
     return;
   }
-
-  var head = '<tr>';
-  COLS.forEach(function (c) {
-    var sorted = c.key === sortKey;
-    head += '<th style="width:' + c.w + '" onclick="sortBy(\'' + c.key + '\')">' + c.label + ' ' + (sorted ? (sortAsc ? '▲' : '▼') : '↕') + '</th>';
-  });
-  head += '</tr>';
+  var head = '<tr>' + COLS.map(function (c) {
+    return '<th style="width:' + c.w + '" onclick="sortBy(\'' + c.key + '\')">' + c.label + ' ' + (c.key === sortKey ? (sortAsc ? '▲' : '▼') : '↕') + '</th>';
+  }).join('') + '</tr>';
   document.getElementById('thead').innerHTML = head;
-
   document.getElementById('tbody').innerHTML = data.map(function (row) {
     var idx = allData.indexOf(row);
     return '<tr onclick="openDetail(' + idx + ')" style="cursor:pointer">' + COLS.map(function (c) {
@@ -377,147 +425,84 @@ function renderTable(data) {
     }).join('') + '</tr>';
   }).join('');
 }
-
-function rCat(v) {
-  var m = { Spam: 'cs', Inbox: 'ci', Promotions: 'cp' };
-  return '<span class="cat ' + (m[v] || 'co') + '">' + esc(v || '—') + '</span>';
-}
+function rCat(v) { var m = { Spam: 'cs', Inbox: 'ci', Promotions: 'cp' }; return '<span class="cat ' + (m[v] || 'co') + '">' + esc(v || '—') + '</span>'; }
 function rText(v) { return esc(truncate(v, 28)); }
 function rDomain(v) { return '<span class="mono" style="color:var(--accent2)">' + esc(truncate(v, 24)) + '</span>'; }
-function rCopy(v) {
-  if (!v) return '<span style="color:var(--dim)">—</span>';
-  return '<span class="mono">' + esc(truncate(v, 22)) + '</span>';
-}
+function rCopy(v) { return v ? '<span class="mono">' + esc(truncate(v, 22)) + '</span>' : '<span style="color:var(--dim)">—</span>'; }
 function rAuth(v) {
   var s = v || 'none';
-  var cls = s === 'pass' ? 'b-pass' : (s === 'fail' || s === 'hardfail') ? 'b-fail' : s === 'softfail' ? 'b-soft' : 'b-none';
-  var icon = s === 'pass' ? '✓' : (s === 'fail' || s === 'hardfail') ? '✗' : s === 'softfail' ? '~' : '–';
+  var bad = s === 'fail' || s === 'hardfail';
+  var cls = s === 'pass' ? 'b-pass' : bad ? 'b-fail' : s === 'softfail' ? 'b-soft' : 'b-none';
+  var icon = s === 'pass' ? '✓' : bad ? '✗' : s === 'softfail' ? '~' : '–';
   return '<span class="b-auth ' + cls + '">' + icon + ' ' + esc(s) + '</span>';
 }
-function truncate(v, n) {
-  v = String(v || '');
-  return v.length > n ? v.substring(0, n) + '…' : v;
-}
+function truncate(v, n) { v = String(v || ''); return v.length > n ? v.substring(0, n) + '…' : v; }
 
 function sortBy(key) {
-  sortAsc = sortKey === key ? !sortAsc : true;
-  sortKey = key;
+  sortAsc = sortKey === key ? !sortAsc : true; sortKey = key;
   filteredData.sort(function (a, b) {
     var av = String(a[key] || '').toLowerCase(), bv = String(b[key] || '').toLowerCase();
-    if (av < bv) return sortAsc ? -1 : 1;
-    if (av > bv) return sortAsc ? 1 : -1;
-    return 0;
+    return av < bv ? (sortAsc ? -1 : 1) : av > bv ? (sortAsc ? 1 : -1) : 0;
   });
   renderTable(filteredData);
 }
-
 function filterTable() {
   var q = document.getElementById('searchBox').value.toLowerCase();
   filteredData = q ? allData.filter(function (r) {
-    return Object.keys(r).some(function (k) {
-      return String(r[k]).toLowerCase().indexOf(q) !== -1;
-    });
+    return Object.keys(r).some(function (k) { return String(r[k]).toLowerCase().indexOf(q) !== -1; });
   }) : allData.slice();
   renderTable(filteredData);
 }
 
 /* ═══════════ COPY / EXPORT ═══════════ */
 function selectedFields() {
-  var boxes = document.querySelectorAll('#fieldList input:checked');
-  return Array.prototype.map.call(boxes, function (b) { return b.value; });
+  return Array.prototype.map.call(document.querySelectorAll('#fieldList input:checked'), function (b) { return b.value; });
 }
-
-function copyText(text, okMsg) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(function () { showToast(okMsg); }, function () { fallbackCopy(text, okMsg); });
-  } else fallbackCopy(text, okMsg);
-}
-function fallbackCopy(text, okMsg) {
-  var ta = document.createElement('textarea');
-  ta.value = text; document.body.appendChild(ta); ta.select();
-  try { document.execCommand('copy'); showToast(okMsg); } catch (e) { showToast('❌ Copy failed'); }
-  document.body.removeChild(ta);
-}
-
-function copyCSV() {
-  if (!filteredData.length) return showToast('No data');
-  var keys = selectedFields();
-  if (!keys.length) keys = Object.keys(filteredData[0]);
-  var csv = [keys.join(',')].concat(filteredData.map(function (r) {
+function toCSV() {
+  var keys = selectedFields(); if (!keys.length) keys = Object.keys(filteredData[0]);
+  return [keys.join(',')].concat(filteredData.map(function (r) {
     return keys.map(function (k) { return '"' + String(r[k] == null ? '' : r[k]).replace(/"/g, '""') + '"'; }).join(',');
   })).join('\n');
-  copyText(csv, '📋 CSV copied (' + filteredData.length + ' rows)');
 }
-function copyIPs() {
-  var ips = uniq(filteredData.map(function (r) { return r.ip; }));
-  copyText(ips.join('\n'), '📌 ' + ips.length + ' IPs copied');
+function copyText(text, ok) {
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { showToast(ok); });
+  else { var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast(ok); }
 }
-function copyDomains() {
-  var d = uniq(filteredData.map(function (r) { return r.fromDomain; }));
-  copyText(d.join('\n'), '🌐 ' + d.length + ' domains copied');
-}
-function copyEmails() {
-  var e = uniq(filteredData.map(function (r) { return r.fromEmail; }));
-  copyText(e.join('\n'), '✉️ ' + e.length + ' emails copied');
-}
+function copyCSV() { if (!filteredData.length) return showToast('No data'); copyText(toCSV(), '📋 CSV copied (' + filteredData.length + ' rows)'); }
+function copyIPs() { var a = uniq(filteredData.map(function (r) { return r.ip; })); copyText(a.join('\n'), '📌 ' + a.length + ' IPs copied'); }
+function copyDomains() { var a = uniq(filteredData.map(function (r) { return r.fromDomain; })); copyText(a.join('\n'), '🌐 ' + a.length + ' domains copied'); }
+function copyEmails() { var a = uniq(filteredData.map(function (r) { return r.fromEmail; })); copyText(a.join('\n'), '✉️ ' + a.length + ' emails copied'); }
 function uniq(a) { var s = {}; a.forEach(function (x) { if (x) s[x] = 1; }); return Object.keys(s); }
-
-function exportSheet() {
+function downloadCSV() {
   if (!filteredData.length) return showToast('No data');
-  showToast('⏳ Exporting…');
-  var keys = selectedFields();
-  var rows = filteredData.map(function (r) {
-    if (!keys.length) return r;
-    var o = {}; keys.forEach(function (k) { o[k] = r[k]; }); return o;
-  });
-  callBot('exportToSheet', [rows, 'MailExtract'], function (r) {
-    if (r && r.success) showToast('✅ <a href="' + esc(r.url) + '" target="_blank" style="color:var(--accent2)">Open Sheet ↗</a>', 8000);
-    else showToast('❌ ' + ((r && r.error) || 'Export failed'));
-  }, function (e) { showToast('❌ ' + e.message); });
+  var blob = new Blob(['\ufeff' + toCSV()], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mailextract-' + (active || 'bot') + '-' + Date.now() + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-/* ═══════════ DETAIL ═══════════ */
+/* ═══════════ DETAIL / UTILS ═══════════ */
 function openDetail(idx) {
   var r = allData[idx]; if (!r) return;
   var score = (r.spf === 'pass' ? 1 : 0) + (r.dkim === 'pass' ? 1 : 0) + (r.dmarc === 'pass' ? 1 : 0);
-  var lines = [
-    'Category: ' + (r.category || '-'),
-    'From: ' + (r.fromName || '') + ' <' + (r.fromEmail || '') + '>',
-    'Domain: ' + (r.fromDomain || '-'),
-    'IP: ' + (r.ip || '-'),
-    'All IPs: ' + (r.allIPs || '-'),
-    'Subject: ' + (r.subject || '-'),
-    'To: ' + (r.to || '-'),
-    'Reply-To: ' + (r.replyTo || '-'),
-    'Return-Path: ' + (r.returnPath || '-'),
-    'Message-ID: ' + (r.messageId || '-'),
-    'Date: ' + (r.date || '-'),
-    'Auth Score: ' + score + '/3  SPF=' + r.spf + ' DKIM=' + r.dkim + ' DMARC=' + r.dmarc,
-    '',
-    'Snippet: ' + (r.snippet || '-')
-  ].join('\n');
-  alert(lines);
+  alert([
+    'Category: ' + r.category, 'From: ' + r.fromName + ' <' + r.fromEmail + '>', 'Domain: ' + (r.fromDomain || '-'),
+    'IP: ' + (r.ip || '-'), 'All IPs: ' + (r.allIPs || '-'), 'Subject: ' + (r.subject || '-'), 'To: ' + (r.to || '-'),
+    'Reply-To: ' + (r.replyTo || '-'), 'Return-Path: ' + (r.returnPath || '-'), 'Message-ID: ' + (r.messageId || '-'),
+    'Date: ' + (r.date || '-'), 'Auth Score: ' + score + '/3  SPF=' + r.spf + ' DKIM=' + r.dkim + ' DMARC=' + r.dmarc,
+    '', 'Snippet: ' + (r.snippet || '-')
+  ].join('\n'));
 }
-
-/* ═══════════ UTILS ═══════════ */
-function esc(s) {
-  return String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 function showToast(msg, ms) {
-  var t = document.getElementById('toast');
-  t.innerHTML = msg;
-  t.classList.add('show');
-  clearTimeout(t._t);
-  t._t = setTimeout(function () { t.classList.remove('show'); }, ms || 3500);
+  var t = document.getElementById('toast'); t.innerHTML = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(function () { t.classList.remove('show'); }, ms || 3500);
 }
 
 /* ═══════════ INIT ═══════════ */
-(function () {
-  renderBots();
-  callBot('getAppUrl', [], function (u) { appUrl = String(u || '').replace(/\/dev$/, '/exec'); });
-  testCurrentBot();
-})();
+renderBots();
+if (CLIENT_ID.indexOf('PASTE_YOUR') === 0) showToast('⚠ Put your Client ID at the top of the script', 8000);
 </script>
 </body>
 </html>
