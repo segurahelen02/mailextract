@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MailExtract PRO</title>
+<style>
+:root{
+  --bg:#080810;--s1:#0f0f1e;--s2:#14142a;--s3:#1a1a35;
+  --border:#252545;--border2:#2e2e5a;
+  --text:#dde1ff;--muted:#6060a0;--dim:#303060;
+  --accent:#6366f1;--accent2:#818cf8;
+  --green:#22c55e;--red:#f43f5e;--amber:#f59e0b;--cyan:#06b6d4;
+  --mono:'IBM Plex Mono',monospace;--sans:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.topbar{height:52px;background:var(--s1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px}
+.logo{font-size:15px;font-weight:700}
+.logo em{color:var(--accent2);font-style:normal}
+.pill{margin-left:auto;display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--border);padding:6px 12px;border-radius:20px;font-size:11px;font-family:var(--mono)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--dim)}
+.dot.ok{background:var(--green);box-shadow:0 0 8px var(--green)}
+.dot.err{background:var(--red)}
+.dot.loading{background:var(--amber);animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+.body{display:flex;flex:1;overflow:hidden}
+aside{width:280px;background:var(--s1);border-right:1px solid var(--border);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:18px}
+main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.sec h3{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;text-transform:uppercase}
+.bot-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:5px;font-size:11px}
+.bot-item:hover{border-color:var(--border2)}
+.bot-item.active{border-color:var(--accent);background:var(--s3)}
+.bot-email{flex:1;font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bot-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:0 4px}
+.bot-del:hover{color:var(--red)}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.field label{font-size:11px;color:var(--muted)}
+input,select,textarea{background:var(--s2);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.btn{padding:9px 14px;background:var(--s2);border:1px solid var(--border);color:var(--text);font-size:12px;border-radius:6px;cursor:pointer;transition:all .15s;text-align:center}
+.btn:hover{border-color:var(--accent);color:var(--accent2)}
+.btn.primary{background:linear-gradient(135deg,var(--accent),#a855f7);border:none;color:#fff;font-weight:600;width:100%;padding:12px;font-size:13px}
+.btn.primary:hover{opacity:.9}
+.btn.primary:disabled{opacity:.4;cursor:not-allowed}
+.cblist{display:flex;flex-direction:column;gap:5px}
+.cbitem{display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer}
+.cbitem input{width:14px;height:14px;accent-color:var(--accent)}
+.toolbar{background:var(--s1);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.search{flex:1;min-width:160px}
+.badge{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--s2);border:1px solid var(--border);padding:6px 10px;border-radius:6px;white-space:nowrap}
+.tbtn{padding:7px 12px;background:var(--s2);border:1px solid var(--border);color:var(--text);font-size:11px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.tbtn:hover{border-color:var(--accent);color:var(--accent2)}
+.tbtn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.stats{display:flex;gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.stat{flex:1;background:var(--s2);padding:10px 14px}
+.stat-num{font-family:var(--mono);font-size:18px;font-weight:600}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+.c-ok{color:var(--green)}.c-fail{color:var(--red)}.c-warn{color:var(--amber)}.c-info{color:var(--cyan)}
+.twrap{flex:1;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{background:var(--s1);color:var(--muted);font-weight:500;font-size:10.5px;text-align:left;padding:9px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;white-space:nowrap;cursor:pointer}
+td{padding:7px 9px;border-bottom:1px solid #0d0d1a;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tbody tr:hover{background:var(--s2)}
+.mono{font-family:var(--mono);font-size:11px}
+.b-auth{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-family:var(--mono);font-weight:600}
+.b-pass{background:#052814;color:#4ade80;border:1px solid #166534}
+.b-fail{background:#1f0810;color:#f87171;border:1px solid #7f1d1d}
+.b-soft{background:#1a1000;color:#fbbf24;border:1px solid #713f12}
+.b-none{background:#111128;color:#5050a0;border:1px solid #25253a}
+.cat{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;font-family:var(--mono);font-weight:600}
+.cs{background:#1f0810;color:#f43f5e}.ci{background:#052814;color:#22c55e}
+.cp{background:#1a1000;color:#f59e0b}.co{background:#0f0f23;color:#818cf8}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--muted);padding:40px;text-align:center}
+.empty-icon{font-size:54px;opacity:.25}
+.empty h3{font-size:16px;color:var(--text)}
+.empty p{font-size:12px;max-width:340px;line-height:1.7}
+.pbar{height:2px;background:var(--border);display:none}
+.pbar.on{display:block}
+.pbar-fill{height:100%;background:linear-gradient(90deg,var(--accent),#a855f7,var(--cyan));animation:pb 1.5s infinite}
+@keyframes pb{0%{width:0;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0;margin-left:100%}}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--s1);border:1px solid var(--border2);border-radius:10px;padding:22px;width:460px;max-width:100%;display:flex;flex-direction:column;gap:12px}
+.modal h3{font-size:15px;font-weight:600}
+.note{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:11.5px;color:var(--muted);line-height:1.7}
+.mbtns{display:flex;gap:8px;justify-content:flex-end}
+.toast{position:fixed;bottom:20px;right:20px;z-index:600;background:var(--s2);border:1px solid var(--border);padding:12px 16px;border-radius:6px;font-size:12px;display:none;max-width:360px;box-shadow:0 10px 40px rgba(0,0,0,.7)}
+.toast.show{display:block;animation:ts .2s}
+@keyframes ts{from{transform:translateY(8px);opacity:0}}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Mail<em>Extract</em> PRO</div>
+  <div class="pill"><div class="dot" id="dot"></div><span id="status">not connected</span></div>
+</div>
+
+<div class="body">
+<aside>
+
+  <div class="sec">
+    <h3>Bot Accounts</h3>
+    <div id="botList"></div>
+    <button class="btn" style="width:100%;margin-top:6px" onclick="openAddBot()">＋ Add bot</button>
+    <button class="btn" style="width:100%;margin-top:6px" onclick="testCurrentBot()">🔌 Test connection</button>
+  </div>
+
+  <div class="sec">
+    <h3>Extraction</h3>
+    <div class="row2">
+      <div class="field"><label>Start from</label><input type="number" id="startFrom" value="1" min="1"></div>
+      <div class="field"><label>Count</label><input type="number" id="countInput" value="40" min="1" max="500"></div>
+    </div>
+    <div class="field"><label>Category</label>
+      <select id="categorySelect">
+        <option>Spam</option><option>Inbox</option><option>All</option>
+        <option>Promotions</option><option>Updates</option><option>Social</option><option>Sent</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h3>Fields</h3>
+    <div class="cblist" id="fieldList">
+      <label class="cbitem"><input type="checkbox" value="ip" checked> IP</label>
+      <label class="cbitem"><input type="checkbox" value="fromName" checked> From name</label>
+      <label class="cbitem"><input type="checkbox" value="fromEmail" checked> From email</label>
+      <label class="cbitem"><input type="checkbox" value="fromDomain" checked> From domain</label>
+      <label class="cbitem"><input type="checkbox" value="subject" checked> Subject</label>
+      <label class="cbitem"><input type="checkbox" value="to" checked> To</label>
+      <label class="cbitem"><input type="checkbox" value="spf" checked> SPF</label>
+      <label class="cbitem"><input type="checkbox" value="dkim" checked> DKIM</label>
+      <label class="cbitem"><input type="checkbox" value="dmarc" checked> DMARC</label>
+      <label class="cbitem"><input type="checkbox" value="replyTo"> Reply-To</label>
+      <label class="cbitem"><input type="checkbox" value="returnPath"> Return-Path</label>
+      <label class="cbitem"><input type="checkbox" value="date"> Date</label>
+    </div>
+  </div>
+
+  <button class="btn primary" id="extractBtn" onclick="runExtraction()">⚡ Extract Emails</button>
+</aside>
+
+<main>
+  <div class="pbar" id="pbar"><div class="pbar-fill"></div></div>
+
+  <div class="toolbar" id="toolbar" style="display:none">
+    <input class="search" id="searchBox" placeholder="Filter…" oninput="filterTable()">
+    <span class="badge" id="countBadge">0 rows</span>
+    <button class="tbtn" onclick="copyCSV()">📋 CSV</button>
+    <button class="tbtn" onclick="copyIPs()">📌 IPs</button>
+    <button class="tbtn" onclick="copyDomains()">🌐 Domains</button>
+    <button class="tbtn" onclick="copyEmails()">✉️ Emails</button>
+    <button class="tbtn primary" onclick="exportSheet()">↗ Sheet</button>
+  </div>
+
+  <div class="stats" id="stats" style="display:none">
+    <div class="stat"><div class="stat-num" id="sTot">0</div><div class="stat-lbl">Emails</div></div>
+    <div class="stat"><div class="stat-num c-ok" id="sSpf">0</div><div class="stat-lbl">SPF pass</div></div>
+    <div class="stat"><div class="stat-num c-ok" id="sDkim">0</div><div class="stat-lbl">DKIM pass</div></div>
+    <div class="stat"><div class="stat-num c-ok" id="sDmarc">0</div><div class="stat-lbl">DMARC pass</div></div>
+    <div class="stat"><div class="stat-num c-fail" id="sFail">0</div><div class="stat-lbl">Auth fail</div></div>
+    <div class="stat"><div class="stat-num c-info" id="sIPs">0</div><div class="stat-lbl">Unique IPs</div></div>
+    <div class="stat"><div class="stat-num c-warn" id="sDoms">0</div><div class="stat-lbl">Domains</div></div>
+  </div>
+
+  <div class="twrap" id="tableWrap" style="display:none">
+    <table><thead id="thead"></thead><tbody id="tbody"></tbody></table>
+  </div>
+
+  <div class="empty" id="empty">
+    <div class="empty-icon">✉️</div>
+    <h3>No data yet</h3>
+    <p>Open this app signed in as your bot and click Allow, then click "Extract Emails".</p>
+  </div>
+</main>
+</div>
+
+<!-- add bot modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3>Add Bot Account</h3>
+    <div class="note">Enter the bot's Gmail address. Google asks you to sign in with that bot (once), click <b>Allow</b>, and you come back to this same page connected to it.</div>
+    <div class="field"><label>Bot Gmail</label><input id="botEmail" placeholder="bot01@gmail.com"></div>
+    <div class="mbtns">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" style="width:auto" onclick="saveBot()">Connect</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════ STATE ═══════════ */
+var bots = JSON.parse(localStorage.getItem('mx_bots') || '[]');   // [{email}]
+var me = '', appUrl = '';
+var allData = [], filteredData = [], sortKey = '', sortAsc = true;
+
+/* ═══════════ SERVER BRIDGE ═══════════ */
+function callBot(fn, args, onSuccess, onError) {
+  try {
+    google.script.run
+      .withSuccessHandler(function (r) { onSuccess && onSuccess(r); })
+      .withFailureHandler(function (e) { onError && onError({ message: (e && e.message) || String(e) }); })
+      [fn].apply(null, args || []);
+  } catch (err) {
+    onError && onError({ message: err.message });
+  }
+}
+
+/* ═══════════ BOT MANAGER ═══════════ */
+function renderBots() {
+  var html = '<div class="bot-item active"><div class="dot ok"></div>' +
+             '<span class="bot-email">' + esc(me || 'connecting…') + '</span></div>';
+  bots.forEach(function (b, i) {
+    if (b.email === me) return;
+    html += '<div class="bot-item" onclick="openBot(' + i + ')" title="Open as this account">' +
+            '<div class="dot"></div><span class="bot-email">' + esc(b.email) + '</span>' +
+            '<button class="bot-del" onclick="deleteBot(event,' + i + ')" title="Remove">×</button></div>';
+  });
+  document.getElementById('botList').innerHTML = html;
+}
+
+/* Switch to a bot IN THE SAME TAB via Google's account chooser (no broken authuser URL) */
+function goBot(email) {
+  if (!appUrl) return showToast('⚠ App URL not loaded yet, try again in 2 seconds');
+  var url = 'https://accounts.google.com/AccountChooser?Email=' + encodeURIComponent(email) +
+            '&continue=' + encodeURIComponent(appUrl);
+  window.open(url, '_top');
+}
+function openBot(i) { goBot(bots[i].email); }
+function deleteBot(e, i) {
+  e.stopPropagation();
+  bots.splice(i, 1); saveBots(); renderBots();
+}
+function saveBots() { localStorage.setItem('mx_bots', JSON.stringify(bots)); }
+
+function openAddBot() {
+  document.getElementById('modalBg').classList.add('open');
+  document.getElementById('botEmail').focus();
+}
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('open');
+  document.getElementById('botEmail').value = '';
+}
+
+function saveBot() {
+  var email = document.getElementById('botEmail').value.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showToast('⚠ Enter a valid Gmail address');
+  if (!bots.some(function (b) { return b.email === email; })) bots.push({ email: email });
+  saveBots(); closeModal(); renderBots();
+  goBot(email);
+}
+
+function testCurrentBot() {
+  updateStatus('loading', 'testing…');
+  callBot('checkAuth', [], function (r) {
+    if (r && r.authed) {
+      me = r.email;
+      if (me && !bots.some(function (b) { return b.email === me; })) { bots.push({ email: me }); saveBots(); }
+      updateStatus('ok', me || 'connected');
+      showToast('✅ Connected as ' + me);
+    } else {
+      updateStatus('err', 'auth failed');
+      showToast('❌ ' + ((r && r.error) || 'Auth failed'));
+    }
+    renderBots();
+  }, function (e) {
+    updateStatus('err', 'error');
+    showToast('❌ ' + e.message);
+  });
+}
+
+function updateStatus(state, text) {
+  document.getElementById('dot').className = 'dot' + (state ? ' ' + state : '');
+  document.getElementById('status').textContent = text || 'not connected';
+}
+
+/* ═══════════ EXTRACTION ═══════════ */
+function runExtraction() {
+  var btn = document.getElementById('extractBtn');
+  btn.disabled = true; btn.textContent = '⏳ Extracting…';
+  document.getElementById('pbar').classList.add('on');
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('tableWrap').style.display = 'none';
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('stats').style.display = 'none';
+
+  var cfg = {
+    startFrom: parseInt(document.getElementById('startFrom').value, 10) || 1,
+    count: parseInt(document.getElementById('countInput').value, 10) || 40,
+    category: document.getElementById('categorySelect').value
+  };
+
+  callBot('extractEmails', [cfg], function (r) {
+    resetBtn(btn);
+    if (r && r.success && r.data) {
+      allData = r.data; filteredData = allData.slice();
+      renderAll();
+      showToast('✅ ' + allData.length + ' emails extracted');
+    } else {
+      document.getElementById('empty').style.display = 'flex';
+      showToast('❌ ' + ((r && r.error) || 'Extraction failed'));
+    }
+  }, function (e) {
+    resetBtn(btn);
+    document.getElementById('empty').style.display = 'flex';
+    showToast('❌ ' + e.message);
+  });
+}
+
+function resetBtn(btn) {
+  document.getElementById('pbar').classList.remove('on');
+  btn.disabled = false; btn.textContent = '⚡ Extract Emails';
+}
+
+/* ═══════════ TABLE ═══════════ */
+var COLS = [
+  { key: 'category',   label: 'Cat',     w: '70px',  render: rCat },
+  { key: 'ip',         label: 'IP',      w: '140px', render: rCopy },
+  { key: 'fromDomain', label: 'Domain',  w: '170px', render: rDomain },
+  { key: 'fromName',   label: 'Name',    w: '140px', render: rText },
+  { key: 'fromEmail',  label: 'Email',   w: '200px', render: rCopy },
+  { key: 'subject',    label: 'Subject', w: '240px', render: rText },
+  { key: 'to',         label: 'To',      w: '140px', render: rText },
+  { key: 'spf',        label: 'SPF',     w: '90px',  render: rAuth },
+  { key: 'dkim',       label: 'DKIM',    w: '90px',  render: rAuth },
+  { key: 'dmarc',      label: 'DMARC',   w: '90px',  render: rAuth }
+];
+
+function renderAll() {
+  updateStats();
+  renderTable(filteredData);
+  document.getElementById('toolbar').style.display = 'flex';
+  document.getElementById('stats').style.display = 'flex';
+  document.getElementById('tableWrap').style.display = 'block';
+}
+
+function updateStats() {
+  var d = allData;
+  document.getElementById('sTot').textContent = d.length;
+  document.getElementById('sSpf').textContent = d.filter(function (r) { return r.spf === 'pass'; }).length;
+  document.getElementById('sDkim').textContent = d.filter(function (r) { return r.dkim === 'pass'; }).length;
+  document.getElementById('sDmarc').textContent = d.filter(function (r) { return r.dmarc === 'pass'; }).length;
+  document.getElementById('sFail').textContent = d.filter(function (r) { return r.spf === 'fail' || r.dkim === 'fail' || r.dmarc === 'fail'; }).length;
+  var ips = {}, doms = {};
+  d.forEach(function (r) { if (r.ip) ips[r.ip] = 1; if (r.fromDomain) doms[r.fromDomain] = 1; });
+  document.getElementById('sIPs').textContent = Object.keys(ips).length;
+  document.getElementById('sDoms').textContent = Object.keys(doms).length;
+}
+
+function renderTable(data) {
+  document.getElementById('countBadge').textContent = data.length + ' rows';
+  if (!data.length) {
+    document.getElementById('thead').innerHTML = '';
+    document.getElementById('tbody').innerHTML = '<tr><td style="text-align:center;padding:28px;color:var(--muted)">No results</td></tr>';
+    return;
+  }
+
+  var head = '<tr>';
+  COLS.forEach(function (c) {
+    var sorted = c.key === sortKey;
+    head += '<th style="width:' + c.w + '" onclick="sortBy(\'' + c.key + '\')">' + c.label + ' ' + (sorted ? (sortAsc ? '▲' : '▼') : '↕') + '</th>';
+  });
+  head += '</tr>';
+  document.getElementById('thead').innerHTML = head;
+
+  document.getElementById('tbody').innerHTML = data.map(function (row) {
+    var idx = allData.indexOf(row);
+    return '<tr onclick="openDetail(' + idx + ')" style="cursor:pointer">' + COLS.map(function (c) {
+      return '<td style="max-width:' + c.w + '">' + c.render(row[c.key] || '', row) + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+}
+
+function rCat(v) {
+  var m = { Spam: 'cs', Inbox: 'ci', Promotions: 'cp' };
+  return '<span class="cat ' + (m[v] || 'co') + '">' + esc(v || '—') + '</span>';
+}
+function rText(v) { return esc(truncate(v, 28)); }
+function rDomain(v) { return '<span class="mono" style="color:var(--accent2)">' + esc(truncate(v, 24)) + '</span>'; }
+function rCopy(v) {
+  if (!v) return '<span style="color:var(--dim)">—</span>';
+  return '<span class="mono">' + esc(truncate(v, 22)) + '</span>';
+}
+function rAuth(v) {
+  var s = v || 'none';
+  var cls = s === 'pass' ? 'b-pass' : (s === 'fail' || s === 'hardfail') ? 'b-fail' : s === 'softfail' ? 'b-soft' : 'b-none';
+  var icon = s === 'pass' ? '✓' : (s === 'fail' || s === 'hardfail') ? '✗' : s === 'softfail' ? '~' : '–';
+  return '<span class="b-auth ' + cls + '">' + icon + ' ' + esc(s) + '</span>';
+}
+function truncate(v, n) {
+  v = String(v || '');
+  return v.length > n ? v.substring(0, n) + '…' : v;
+}
+
+function sortBy(key) {
+  sortAsc = sortKey === key ? !sortAsc : true;
+  sortKey = key;
+  filteredData.sort(function (a, b) {
+    var av = String(a[key] || '').toLowerCase(), bv = String(b[key] || '').toLowerCase();
+    if (av < bv) return sortAsc ? -1 : 1;
+    if (av > bv) return sortAsc ? 1 : -1;
+    return 0;
+  });
+  renderTable(filteredData);
+}
+
+function filterTable() {
+  var q = document.getElementById('searchBox').value.toLowerCase();
+  filteredData = q ? allData.filter(function (r) {
+    return Object.keys(r).some(function (k) {
+      return String(r[k]).toLowerCase().indexOf(q) !== -1;
+    });
+  }) : allData.slice();
+  renderTable(filteredData);
+}
+
+/* ═══════════ COPY / EXPORT ═══════════ */
+function selectedFields() {
+  var boxes = document.querySelectorAll('#fieldList input:checked');
+  return Array.prototype.map.call(boxes, function (b) { return b.value; });
+}
+
+function copyText(text, okMsg) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { showToast(okMsg); }, function () { fallbackCopy(text, okMsg); });
+  } else fallbackCopy(text, okMsg);
+}
+function fallbackCopy(text, okMsg) {
+  var ta = document.createElement('textarea');
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); showToast(okMsg); } catch (e) { showToast('❌ Copy failed'); }
+  document.body.removeChild(ta);
+}
+
+function copyCSV() {
+  if (!filteredData.length) return showToast('No data');
+  var keys = selectedFields();
+  if (!keys.length) keys = Object.keys(filteredData[0]);
+  var csv = [keys.join(',')].concat(filteredData.map(function (r) {
+    return keys.map(function (k) { return '"' + String(r[k] == null ? '' : r[k]).replace(/"/g, '""') + '"'; }).join(',');
+  })).join('\n');
+  copyText(csv, '📋 CSV copied (' + filteredData.length + ' rows)');
+}
+function copyIPs() {
+  var ips = uniq(filteredData.map(function (r) { return r.ip; }));
+  copyText(ips.join('\n'), '📌 ' + ips.length + ' IPs copied');
+}
+function copyDomains() {
+  var d = uniq(filteredData.map(function (r) { return r.fromDomain; }));
+  copyText(d.join('\n'), '🌐 ' + d.length + ' domains copied');
+}
+function copyEmails() {
+  var e = uniq(filteredData.map(function (r) { return r.fromEmail; }));
+  copyText(e.join('\n'), '✉️ ' + e.length + ' emails copied');
+}
+function uniq(a) { var s = {}; a.forEach(function (x) { if (x) s[x] = 1; }); return Object.keys(s); }
+
+function exportSheet() {
+  if (!filteredData.length) return showToast('No data');
+  showToast('⏳ Exporting…');
+  var keys = selectedFields();
+  var rows = filteredData.map(function (r) {
+    if (!keys.length) return r;
+    var o = {}; keys.forEach(function (k) { o[k] = r[k]; }); return o;
+  });
+  callBot('exportToSheet', [rows, 'MailExtract'], function (r) {
+    if (r && r.success) showToast('✅ <a href="' + esc(r.url) + '" target="_blank" style="color:var(--accent2)">Open Sheet ↗</a>', 8000);
+    else showToast('❌ ' + ((r && r.error) || 'Export failed'));
+  }, function (e) { showToast('❌ ' + e.message); });
+}
+
+/* ═══════════ DETAIL ═══════════ */
+function openDetail(idx) {
+  var r = allData[idx]; if (!r) return;
+  var score = (r.spf === 'pass' ? 1 : 0) + (r.dkim === 'pass' ? 1 : 0) + (r.dmarc === 'pass' ? 1 : 0);
+  var lines = [
+    'Category: ' + (r.category || '-'),
+    'From: ' + (r.fromName || '') + ' <' + (r.fromEmail || '') + '>',
+    'Domain: ' + (r.fromDomain || '-'),
+    'IP: ' + (r.ip || '-'),
+    'All IPs: ' + (r.allIPs || '-'),
+    'Subject: ' + (r.subject || '-'),
+    'To: ' + (r.to || '-'),
+    'Reply-To: ' + (r.replyTo || '-'),
+    'Return-Path: ' + (r.returnPath || '-'),
+    'Message-ID: ' + (r.messageId || '-'),
+    'Date: ' + (r.date || '-'),
+    'Auth Score: ' + score + '/3  SPF=' + r.spf + ' DKIM=' + r.dkim + ' DMARC=' + r.dmarc,
+    '',
+    'Snippet: ' + (r.snippet || '-')
+  ].join('\n');
+  alert(lines);
+}
+
+/* ═══════════ UTILS ═══════════ */
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function showToast(msg, ms) {
+  var t = document.getElementById('toast');
+  t.innerHTML = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(function () { t.classList.remove('show'); }, ms || 3500);
+}
+
+/* ═══════════ INIT ═══════════ */
+(function () {
+  renderBots();
+  callBot('getAppUrl', [], function (u) { appUrl = String(u || '').replace(/\/dev$/, '/exec'); });
+  testCurrentBot();
+})();
+</script>
+</body>
+</html>
