@@ -215,10 +215,12 @@ tbody tr:hover{background:var(--s2)}
     </div>
   </div>
 
-  <div class="hint" id="tableHint" style="display:none">Tip: click and drag across cells, then Ctrl+C (Cmd+C on Mac) to copy. Double-click a row for full details.</div>
+  <div class="hint" id="tableHint" style="display:none">Tip: drag + Ctrl+C to copy a selection · <b>Ctrl+Click a column header</b> to copy that whole column · <b>Ctrl+Click a row</b> to copy that row · Double-click a row for full details.</div>
 
   <div class="stats" id="stats" style="display:none">
     <div class="stat"><div class="stat-num" id="sTot">0</div><div class="stat-lbl">Emails</div></div>
+    <div class="stat"><div class="stat-num" id="sInboxRate">0%</div><div class="stat-lbl">Inbox placement</div></div>
+    <div class="stat"><div class="stat-num" id="sFullAuth">0%</div><div class="stat-lbl">Full auth pass</div></div>
     <div class="stat"><div class="stat-num c-ok" id="sSpf">0</div><div class="stat-lbl">SPF pass</div></div>
     <div class="stat"><div class="stat-num c-ok" id="sDkim">0</div><div class="stat-lbl">DKIM pass</div></div>
     <div class="stat"><div class="stat-num c-ok" id="sDmarc">0</div><div class="stat-lbl">DMARC pass</div></div>
@@ -498,6 +500,7 @@ function extractDomain(e) { var p = e.split('@'); return p.length > 1 ? p[1].toL
 
 /* ═══════════ TABLE ═══════════ */
 var COLS = [
+  { key: 'result',     label: 'Result',  w: '150px', render: rResult },
   { key: 'category',   label: 'Cat',     w: '70px',  render: rCat },
   { key: 'ip',         label: 'IP',      w: '140px', render: rCopy },
   { key: 'fromDomain', label: 'Domain',  w: '170px', render: rDomain },
@@ -527,6 +530,21 @@ function updateStats() {
   document.getElementById('sFail').textContent = n(function (r) { return r.spf === 'fail' || r.dkim === 'fail' || r.dmarc === 'fail'; });
   document.getElementById('sIPs').textContent = uniq(d.map(function (r) { return r.ip; })).length;
   document.getElementById('sDoms').textContent = uniq(d.map(function (r) { return r.fromDomain; })).length;
+
+  var inboxN = n(function (r) { return r.category === 'Inbox'; });
+  var spamN = n(function (r) { return r.category === 'Spam'; });
+  var placementBase = inboxN + spamN;
+  var inboxPct = placementBase ? Math.round(inboxN / placementBase * 100) : 0;
+  var fullAuthN = n(function (r) { return r.spf === 'pass' && r.dkim === 'pass' && r.dmarc === 'pass'; });
+  var fullAuthPct = d.length ? Math.round(fullAuthN / d.length * 100) : 0;
+
+  var ir = document.getElementById('sInboxRate');
+  ir.textContent = placementBase ? (inboxPct + '%') : '—';
+  ir.className = 'stat-num ' + (inboxPct >= 80 ? 'c-ok' : inboxPct >= 50 ? 'c-warn' : 'c-fail');
+
+  var fa = document.getElementById('sFullAuth');
+  fa.textContent = fullAuthPct + '%';
+  fa.className = 'stat-num ' + (fullAuthPct >= 80 ? 'c-ok' : fullAuthPct >= 50 ? 'c-warn' : 'c-fail');
 }
 function renderTable(data) {
   document.getElementById('countBadge').textContent = data.length + ' rows';
@@ -536,15 +554,43 @@ function renderTable(data) {
     return;
   }
   var head = '<tr>' + COLS.map(function (c) {
-    return '<th style="width:' + c.w + '" onclick="sortBy(\'' + c.key + '\')">' + c.label + ' ' + (c.key === sortKey ? (sortAsc ? '▲' : '▼') : '↕') + '</th>';
+    return '<th style="width:' + c.w + '" onclick="headerClick(event,\'' + c.key + '\')" title="Click to sort · Ctrl+Click to copy whole column">' + c.label + ' ' + (c.key === sortKey ? (sortAsc ? '▲' : '▼') : '↕') + '</th>';
   }).join('') + '</tr>';
   document.getElementById('thead').innerHTML = head;
   document.getElementById('tbody').innerHTML = data.map(function (row) {
     var idx = allData.indexOf(row);
-    return '<tr ondblclick="openDetail(' + idx + ')" title="Double-click for details">' + COLS.map(function (c) {
-      return '<td style="max-width:' + c.w + '">' + c.render(row[c.key] || '', row) + '</td>';
+    return '<tr ondblclick="openDetail(' + idx + ')" title="Click: select text · Ctrl+Click: copy row · Double-click: full details">' + COLS.map(function (c) {
+      return '<td onclick="cellClick(event,' + idx + ')" style="max-width:' + c.w + '">' + c.render(row[c.key] || '', row) + '</td>';
     }).join('') + '</tr>';
   }).join('');
+}
+
+/* ═══════════ CTRL+CLICK COPY (column / row) ═══════════ */
+function headerClick(e, key) {
+  if (e.ctrlKey || e.metaKey) {
+    e.preventDefault();
+    if (key === 'result') return showToast('⚠ "Result" is computed, not a raw field');
+    var vals = filteredData.map(function (r) { return r[key] == null ? '' : String(r[key]); });
+    copyText(vals.join('\n'), '📌 Column "' + key + '" copied (' + vals.length + ' rows)');
+    return;
+  }
+  sortBy(key);
+}
+function cellClick(e, idx) {
+  if (!(e.ctrlKey || e.metaKey)) return; // plain click: let native text selection happen
+  e.preventDefault();
+  var row = allData[idx]; if (!row) return;
+  var keys = COLS.filter(function (c) { return c.key !== 'result'; }).map(function (c) { return c.key; });
+  var line = keys.map(function (k) { return row[k] == null ? '' : String(row[k]); }).join('\t');
+  copyText(line, '📋 Row copied (tab-separated)');
+}
+function rResult(v, row) {
+  var fullAuth = row.spf === 'pass' && row.dkim === 'pass' && row.dmarc === 'pass';
+  if (row.category === 'Spam') return '<span class="b-auth b-fail">❌ Spam</span>';
+  if (row.category === 'Inbox') {
+    return fullAuth ? '<span class="b-auth b-pass">✅ Inbox · Pass</span>' : '<span class="b-auth b-soft">⚠ Inbox · Partial</span>';
+  }
+  return '<span class="b-auth b-none">• ' + esc(row.category || '—') + '</span>';
 }
 function rCat(v) { var m = { Spam: 'cs', Inbox: 'ci', Promotions: 'cp' }; return '<span class="cat ' + (m[v] || 'co') + '">' + esc(v || '—') + '</span>'; }
 function rText(v) { return esc(truncate(v, 28)); }
