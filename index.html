@@ -14,19 +14,24 @@
   --green:#22c55e;--red:#f43f5e;--amber:#f59e0b;--cyan:#06b6d4;
   --mono:'IBM Plex Mono',monospace;--sans:'Inter',system-ui,sans-serif;
 }
+body.light{
+  --bg:#f3f4fa;--s1:#ffffff;--s2:#eef0f9;--s3:#e4e7f6;
+  --border:#dadeef;--border2:#c7cce8;
+  --text:#191933;--muted:#6a6a93;--dim:#b7bbdd;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;height:100vh;overflow:hidden;display:flex;flex-direction:column;transition:background .15s,color .15s}
 .topbar{height:52px;background:var(--s1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px}
 .logo{font-size:15px;font-weight:700}
 .logo em{color:var(--accent2);font-style:normal}
-.pill{margin-left:auto;display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--border);padding:6px 12px;border-radius:20px;font-size:11px;font-family:var(--mono)}
+.pill{display:flex;align-items:center;gap:7px;background:var(--s2);border:1px solid var(--border);padding:6px 12px;border-radius:20px;font-size:11px;font-family:var(--mono)}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--dim)}
 .dot.ok{background:var(--green);box-shadow:0 0 8px var(--green)}
 .dot.err{background:var(--red)}
 .dot.loading{background:var(--amber);animation:pulse .8s infinite}
 @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
 .body{display:flex;flex:1;overflow:hidden}
-aside{width:280px;background:var(--s1);border-right:1px solid var(--border);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:18px}
+aside{width:290px;background:var(--s1);border-right:1px solid var(--border);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:18px}
 main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .sec h3{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;text-transform:uppercase}
 .bot-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--s2);border:1px solid var(--border);border-radius:6px;cursor:pointer;margin-bottom:5px;font-size:11px}
@@ -37,23 +42,37 @@ main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .bot-del:hover{color:var(--red)}
 .field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
 .field label{font-size:11px;color:var(--muted)}
-input,select{background:var(--s2);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;width:100%}
-input:focus,select:focus{border-color:var(--accent)}
+input,select,textarea{background:var(--s2);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .btn{padding:9px 14px;background:var(--s2);border:1px solid var(--border);color:var(--text);font-size:12px;border-radius:6px;cursor:pointer;transition:all .15s;text-align:center}
 .btn:hover{border-color:var(--accent);color:var(--accent2)}
 .btn.primary{background:linear-gradient(135deg,var(--accent),#a855f7);border:none;color:#fff;font-weight:600;width:100%;padding:12px;font-size:13px}
 .btn.primary:hover{opacity:.9}
 .btn.primary:disabled{opacity:.4;cursor:not-allowed}
-.cblist{display:flex;flex-direction:column;gap:5px}
-.cbitem{display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer}
-.cbitem input{width:14px;height:14px;accent-color:var(--accent)}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.btn.danger:hover{background:var(--red);color:#fff}
+.chiprow{display:flex;gap:6px;margin-bottom:8px}
+.chip-action{padding:4px 9px;background:none;border:1px solid var(--border);border-radius:5px;font-size:10px;color:var(--muted);cursor:pointer}
+.chip-action:hover{border-color:var(--accent);color:var(--accent2)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:6px 10px;background:var(--s2);border:1px solid var(--border);border-radius:14px;font-size:11px;cursor:pointer;user-select:none;color:var(--muted);transition:all .1s}
+.chip:hover{border-color:var(--border2)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .toolbar{background:var(--s1);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .search{flex:1;min-width:160px}
 .badge{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--s2);border:1px solid var(--border);padding:6px 10px;border-radius:6px;white-space:nowrap}
 .tbtn{padding:7px 12px;background:var(--s2);border:1px solid var(--border);color:var(--text);font-size:11px;border-radius:6px;cursor:pointer;white-space:nowrap}
 .tbtn:hover{border-color:var(--accent);color:var(--accent2)}
 .tbtn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.tbtn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.hint{padding:4px 14px;font-size:10px;color:var(--muted);background:var(--s1);border-bottom:1px solid var(--border)}
+.filters-panel{background:var(--s1);border-bottom:1px solid var(--border);padding:12px 14px;display:none;gap:12px;flex-wrap:wrap}
+.filters-panel.open{display:flex}
+.fp-col{flex:1;min-width:180px;display:flex;flex-direction:column;gap:4px}
+.fp-col label{font-size:10px;color:var(--muted)}
+.fp-col textarea{font-family:var(--mono);font-size:11px;resize:vertical;min-height:60px}
+.fp-actions{display:flex;align-items:flex-end;gap:8px}
 .stats{display:flex;gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
 .stat{flex:1;background:var(--s2);padding:10px 14px}
 .stat-num{font-family:var(--mono);font-size:18px;font-weight:600}
@@ -62,7 +81,7 @@ input:focus,select:focus{border-color:var(--accent)}
 .twrap{flex:1;overflow:auto}
 table{width:100%;border-collapse:collapse;font-size:11.5px}
 th{background:var(--s1);color:var(--muted);font-weight:500;font-size:10.5px;text-align:left;padding:9px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;white-space:nowrap;cursor:pointer}
-td{padding:7px 9px;border-bottom:1px solid #0d0d1a;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:text}
 tbody tr:hover{background:var(--s2)}
 .mono{font-family:var(--mono);font-size:11px}
 .b-auth{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-family:var(--mono);font-weight:600}
@@ -81,7 +100,7 @@ tbody tr:hover{background:var(--s2)}
 .pbar.on{display:block}
 .pbar-fill{height:100%;background:linear-gradient(90deg,var(--accent),#a855f7,var(--cyan));animation:pb 1.5s infinite}
 @keyframes pb{0%{width:0;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0;margin-left:100%}}
-.toast{position:fixed;bottom:20px;right:20px;z-index:600;background:var(--s2);border:1px solid var(--border);padding:12px 16px;border-radius:6px;font-size:12px;display:none;max-width:360px;box-shadow:0 10px 40px rgba(0,0,0,.7)}
+.toast{position:fixed;bottom:20px;right:20px;z-index:600;background:var(--s2);border:1px solid var(--border);padding:12px 16px;border-radius:6px;font-size:12px;display:none;max-width:360px;box-shadow:0 10px 40px rgba(0,0,0,.4)}
 .toast.show{display:block;animation:ts .2s}
 @keyframes ts{from{transform:translateY(8px);opacity:0}}
 ::-webkit-scrollbar{width:6px;height:6px}
@@ -92,11 +111,15 @@ tbody tr:hover{background:var(--s2)}
 
 <div class="topbar">
   <div class="logo">Mail<em>Extract</em> PRO</div>
-  <div class="pill"><div class="dot" id="dot"></div><span id="status">not connected</span></div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+    <button class="tbtn" id="themeBtn" onclick="toggleTheme()">🌙 Dark</button>
+    <div class="pill"><div class="dot" id="dot"></div><span id="status">not connected</span></div>
+  </div>
 </div>
 
 <div class="body">
 <aside>
+
   <div class="sec">
     <h3>Bot Accounts</h3>
     <div id="botList"></div>
@@ -109,40 +132,63 @@ tbody tr:hover{background:var(--s2)}
       <div class="field"><label>Start from</label><input type="number" id="startFrom" value="1" min="1"></div>
       <div class="field"><label>Count</label><input type="number" id="countInput" value="40" min="1" max="500"></div>
     </div>
-    <div class="field"><label>Category</label>
+    <div class="field"><label>Search scope</label>
       <select id="categorySelect">
-        <option>Spam</option><option>Inbox</option><option>All</option>
+        <option value="All" selected>All (recommended — mix of everything)</option>
+        <option>Inbox</option><option>Spam</option>
         <option>Promotions</option><option>Updates</option><option>Social</option><option>Sent</option>
       </select>
     </div>
+    <div style="font-size:10px;color:var(--muted);line-height:1.5">Tip: leave "All" to fetch a natural mix of Inbox + Spam etc, then use the <b>Category filter</b> above the table to view just one.</div>
   </div>
 
   <div class="sec">
     <h3>Fields (CSV)</h3>
-    <div class="cblist" id="fieldList">
-      <label class="cbitem"><input type="checkbox" value="ip" checked> IP</label>
-      <label class="cbitem"><input type="checkbox" value="fromName" checked> From name</label>
-      <label class="cbitem"><input type="checkbox" value="fromEmail" checked> From email</label>
-      <label class="cbitem"><input type="checkbox" value="fromDomain" checked> From domain</label>
-      <label class="cbitem"><input type="checkbox" value="subject" checked> Subject</label>
-      <label class="cbitem"><input type="checkbox" value="to" checked> To</label>
-      <label class="cbitem"><input type="checkbox" value="spf" checked> SPF</label>
-      <label class="cbitem"><input type="checkbox" value="dkim" checked> DKIM</label>
-      <label class="cbitem"><input type="checkbox" value="dmarc" checked> DMARC</label>
-      <label class="cbitem"><input type="checkbox" value="replyTo"> Reply-To</label>
-      <label class="cbitem"><input type="checkbox" value="returnPath"> Return-Path</label>
-      <label class="cbitem"><input type="checkbox" value="date"> Date</label>
+    <div class="chiprow">
+      <button class="chip-action" onclick="setAllFields(true)">✅ Select all</button>
+      <button class="chip-action" onclick="setAllFields(false)">◻ Clear</button>
+    </div>
+    <div class="chips" id="fieldChips">
+      <span class="chip on" data-value="category">Category</span>
+      <span class="chip on" data-value="ip">IP</span>
+      <span class="chip on" data-value="fromName">From name</span>
+      <span class="chip on" data-value="fromEmail">From email</span>
+      <span class="chip on" data-value="fromDomain">From domain</span>
+      <span class="chip on" data-value="subject">Subject</span>
+      <span class="chip on" data-value="to">To</span>
+      <span class="chip on" data-value="spf">SPF</span>
+      <span class="chip on" data-value="dkim">DKIM</span>
+      <span class="chip on" data-value="dmarc">DMARC</span>
+      <span class="chip" data-value="allIPs">All IPs</span>
+      <span class="chip" data-value="cc">Cc</span>
+      <span class="chip" data-value="replyTo">Reply-To</span>
+      <span class="chip" data-value="returnPath">Return-Path</span>
+      <span class="chip" data-value="messageId">Message-ID</span>
+      <span class="chip" data-value="date">Date</span>
     </div>
   </div>
 
   <button class="btn primary" id="extractBtn" onclick="runExtraction()">⚡ Extract Emails</button>
+  <button class="btn danger" id="cancelBtn" style="display:none" onclick="cancelExtraction()">✖ Cancel Extract</button>
+  <button class="btn" onclick="extractAllFields()">⚡ Extract with all fields</button>
 </aside>
 
 <main>
   <div class="pbar" id="pbar"><div class="pbar-fill"></div></div>
 
   <div class="toolbar" id="toolbar" style="display:none">
-    <input class="search" id="searchBox" placeholder="Filter…" oninput="filterTable()">
+    <input class="search" id="searchBox" placeholder="Filter…" oninput="applyFilters()">
+    <select id="catFilter" onchange="applyFilters()" style="width:auto">
+      <option value="">All categories</option>
+      <option value="Inbox">Inbox</option>
+      <option value="Spam">Spam</option>
+      <option value="Promotions">Promotions</option>
+      <option value="Updates">Updates</option>
+      <option value="Social">Social</option>
+      <option value="Sent">Sent</option>
+      <option value="Other">Other</option>
+    </select>
+    <button class="tbtn" id="moreFiltersBtn" onclick="toggleFiltersPanel()">🔍 More filters</button>
     <span class="badge" id="countBadge">0 rows</span>
     <button class="tbtn" onclick="copyCSV()">📋 CSV</button>
     <button class="tbtn" onclick="copyIPs()">📌 IPs</button>
@@ -150,6 +196,26 @@ tbody tr:hover{background:var(--s2)}
     <button class="tbtn" onclick="copyEmails()">✉️ Emails</button>
     <button class="tbtn primary" onclick="downloadCSV()">⬇ CSV file</button>
   </div>
+
+  <div class="filters-panel" id="filtersPanel">
+    <div class="fp-col">
+      <label>Filter by IP list (one per line — matches IP or All IPs)</label>
+      <textarea id="fIps" rows="3" placeholder="1.2.3.4&#10;5.6.7.8" oninput="applyFilters()"></textarea>
+    </div>
+    <div class="fp-col">
+      <label>Filter by Domain list (one per line)</label>
+      <textarea id="fDomains" rows="3" placeholder="example.com&#10;spamsite.net" oninput="applyFilters()"></textarea>
+    </div>
+    <div class="fp-col">
+      <label>Filter by Subject keywords (one per line)</label>
+      <textarea id="fSubjects" rows="3" placeholder="invoice&#10;urgent" oninput="applyFilters()"></textarea>
+    </div>
+    <div class="fp-actions">
+      <button class="tbtn" onclick="clearAdvancedFilters()">Clear filters</button>
+    </div>
+  </div>
+
+  <div class="hint" id="tableHint" style="display:none">Tip: click and drag across cells, then Ctrl+C (Cmd+C on Mac) to copy. Double-click a row for full details.</div>
 
   <div class="stats" id="stats" style="display:none">
     <div class="stat"><div class="stat-num" id="sTot">0</div><div class="stat-lbl">Emails</div></div>
@@ -177,7 +243,7 @@ tbody tr:hover{background:var(--s2)}
 
 <script>
 /* ═══════════ CONFIG: paste your OAuth Client ID here ═══════════ */
-var CLIENT_ID = '957802286757-qmrenolcl2gu7kcpbptfkbmfkbbg5c8o.apps.googleusercontent.com';
+var CLIENT_ID = 'PASTE_YOUR_CLIENT_ID_HERE.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
 var GMAIL = 'https://gmail.googleapis.com/gmail/v1/users/me/';
 
@@ -185,7 +251,36 @@ var GMAIL = 'https://gmail.googleapis.com/gmail/v1/users/me/';
 var bots = JSON.parse(localStorage.getItem('mx_bots') || '[]');   // [{email}]
 var tokens = {};                                                  // email -> {token, exp}
 var active = localStorage.getItem('mx_active') || '';
-var allData = [], filteredData = [], sortKey = '', sortAsc = true;
+var allData = [], filteredData = [];
+var sortKey = '', sortAsc = true;
+var currentAbort = null, extractCancelled = false;
+
+/* ═══════════ THEME ═══════════ */
+function toggleTheme() {
+  var on = document.body.classList.toggle('light');
+  localStorage.setItem('mx_theme', on ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = on ? '☀️ Light' : '🌙 Dark';
+}
+function initTheme() {
+  var saved = localStorage.getItem('mx_theme');
+  if (saved === 'light') document.body.classList.add('light');
+  document.getElementById('themeBtn').textContent = saved === 'light' ? '☀️ Light' : '🌙 Dark';
+}
+
+/* ═══════════ FIELD CHIPS ═══════════ */
+document.addEventListener('click', function (e) {
+  if (e.target.classList && e.target.classList.contains('chip')) e.target.classList.toggle('on');
+});
+function setAllFields(on) {
+  document.querySelectorAll('#fieldChips .chip').forEach(function (c) { c.classList.toggle('on', on); });
+}
+function selectedFields() {
+  return Array.prototype.map.call(document.querySelectorAll('#fieldChips .chip.on'), function (c) { return c.getAttribute('data-value'); });
+}
+function extractAllFields() {
+  setAllFields(true);
+  runExtraction();
+}
 
 /* ═══════════ GOOGLE LOGIN (popup) ═══════════ */
 function requestToken(hint, forceChooser, done) {
@@ -197,7 +292,6 @@ function requestToken(hint, forceChooser, done) {
     scope: SCOPES,
     callback: function (resp) {
       if (resp.error) return showToast('❌ ' + (resp.error_description || resp.error));
-      // find which account was chosen
       updateStatus('loading', 'checking…');
       api('profile', resp.access_token).then(function (p) {
         var email = p.emailAddress.toLowerCase();
@@ -223,7 +317,7 @@ function addBot() { requestToken('', true); }
 function switchBot(email) {
   var t = tokens[email];
   if (t && t.exp > Date.now()) return setActive(email);
-  requestToken(email, false);     // silent-ish: popup closes by itself if already allowed
+  requestToken(email, false);
 }
 
 function setActive(email) {
@@ -262,8 +356,8 @@ function updateStatus(state, text) {
 }
 
 /* ═══════════ GMAIL API ═══════════ */
-function api(path, token) {
-  return fetch(GMAIL + path, { headers: { Authorization: 'Bearer ' + token } }).then(function (r) {
+function api(path, token, signal) {
+  return fetch(GMAIL + path, { headers: { Authorization: 'Bearer ' + token }, signal: signal }).then(function (r) {
     if (!r.ok) return r.text().then(function (t) { throw new Error('Gmail ' + r.status + ': ' + t.substring(0, 160)); });
     return r.json();
   });
@@ -278,6 +372,13 @@ function buildQuery(c) {
 var HDRS = ['From', 'To', 'Cc', 'Subject', 'Reply-To', 'Return-Path', 'Message-ID', 'Date', 'Received', 'Authentication-Results'];
 var HDR_PARAMS = HDRS.map(function (h) { return 'metadataHeaders=' + encodeURIComponent(h); }).join('&');
 
+/* ═══════════ EXTRACTION (cancellable) ═══════════ */
+function cancelExtraction() {
+  extractCancelled = true;
+  if (currentAbort) currentAbort.abort();
+  showToast('⏹ Cancelling…');
+}
+
 async function runExtraction() {
   var t = tokens[active];
   if (!active) return showToast('⚠ Click "Add bot" first');
@@ -287,12 +388,19 @@ async function runExtraction() {
   }
   var tok = t.token;
 
+  extractCancelled = false;
+  currentAbort = new AbortController();
+  var signal = currentAbort.signal;
+
   var btn = document.getElementById('extractBtn');
   btn.disabled = true; btn.textContent = '⏳ Extracting…';
+  document.getElementById('cancelBtn').style.display = 'block';
   document.getElementById('pbar').classList.add('on');
   document.getElementById('empty').style.display = 'none';
   document.getElementById('tableWrap').style.display = 'none';
   document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('filtersPanel').classList.remove('open');
+  document.getElementById('tableHint').style.display = 'none';
   document.getElementById('stats').style.display = 'none';
 
   try {
@@ -301,24 +409,24 @@ async function runExtraction() {
     var start = Math.max(1, parseInt(document.getElementById('startFrom').value, 10) || 1) - 1;
     var q = buildQuery(cat), need = start + count, ids = [], pt = '';
 
-    while (ids.length < need) {
+    while (ids.length < need && !extractCancelled) {
       var url = 'messages?maxResults=' + Math.min(500, need - ids.length) +
                 (q ? '&q=' + encodeURIComponent(q) : '') +
                 ((cat === 'Spam' || cat === 'All') ? '&includeSpamTrash=true' : '') +
                 (pt ? '&pageToken=' + encodeURIComponent(pt) : '');
-      var r = await api(url, tok);
-      var batch = r.messages || [];
-      ids = ids.concat(batch);
+      var r = await api(url, tok, signal);
+      var page = r.messages || [];
+      ids = ids.concat(page);
       pt = r.nextPageToken;
-      if (!pt || !batch.length) break;
+      if (!pt || !page.length) break;
     }
     ids = ids.slice(start, start + count);
 
     var rows = [];
-    for (var i = 0; i < ids.length; i += 10) {
+    for (var i = 0; i < ids.length && !extractCancelled; i += 10) {
       var chunk = ids.slice(i, i + 10);
       var res = await Promise.all(chunk.map(function (m) {
-        return api('messages/' + m.id + '?format=metadata&' + HDR_PARAMS, tok)
+        return api('messages/' + m.id + '?format=metadata&' + HDR_PARAMS, tok, signal)
           .then(buildRow).catch(function () { return null; });
       }));
       res.forEach(function (x) { if (x) rows.push(x); });
@@ -327,15 +435,27 @@ async function runExtraction() {
 
     allData = rows; filteredData = rows.slice();
     updateStatus('ok', active);
-    if (rows.length) { renderAll(); showToast('✅ ' + rows.length + ' emails extracted'); }
-    else { document.getElementById('empty').style.display = 'flex'; showToast('No emails found'); }
+    if (rows.length) {
+      renderAll();
+      showToast((extractCancelled ? '⏹ Cancelled — ' : '✅ ') + rows.length + ' emails extracted');
+    } else {
+      document.getElementById('empty').style.display = 'flex';
+      showToast(extractCancelled ? '⏹ Cancelled before any data' : 'No emails found');
+    }
   } catch (e) {
-    updateStatus('err', 'error');
-    document.getElementById('empty').style.display = 'flex';
-    showToast('❌ ' + e.message);
+    if (e.name === 'AbortError') {
+      showToast('⏹ Extraction cancelled');
+      document.getElementById('empty').style.display = allData.length ? 'none' : 'flex';
+    } else {
+      updateStatus('err', 'error');
+      document.getElementById('empty').style.display = 'flex';
+      showToast('❌ ' + e.message);
+    }
   }
+  document.getElementById('cancelBtn').style.display = 'none';
   document.getElementById('pbar').classList.remove('on');
   btn.disabled = false; btn.textContent = '⚡ Extract Emails';
+  currentAbort = null;
 }
 
 function buildRow(msg) {
@@ -393,6 +513,7 @@ var COLS = [
 function renderAll() {
   updateStats(); renderTable(filteredData);
   document.getElementById('toolbar').style.display = 'flex';
+  document.getElementById('tableHint').style.display = 'block';
   document.getElementById('stats').style.display = 'flex';
   document.getElementById('tableWrap').style.display = 'block';
 }
@@ -420,7 +541,7 @@ function renderTable(data) {
   document.getElementById('thead').innerHTML = head;
   document.getElementById('tbody').innerHTML = data.map(function (row) {
     var idx = allData.indexOf(row);
-    return '<tr onclick="openDetail(' + idx + ')" style="cursor:pointer">' + COLS.map(function (c) {
+    return '<tr ondblclick="openDetail(' + idx + ')" title="Double-click for details">' + COLS.map(function (c) {
       return '<td style="max-width:' + c.w + '">' + c.render(row[c.key] || '', row) + '</td>';
     }).join('') + '</tr>';
   }).join('');
@@ -446,21 +567,53 @@ function sortBy(key) {
   });
   renderTable(filteredData);
 }
-function filterTable() {
+
+/* ═══════════ FILTERS (search + category + advanced lists) ═══════════ */
+function toggleFiltersPanel() {
+  var p = document.getElementById('filtersPanel');
+  var open = p.classList.toggle('open');
+  document.getElementById('moreFiltersBtn').classList.toggle('active', open);
+}
+function parseList(id) {
+  return document.getElementById(id).value.split('\n').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
+}
+function clearAdvancedFilters() {
+  document.getElementById('fIps').value = '';
+  document.getElementById('fDomains').value = '';
+  document.getElementById('fSubjects').value = '';
+  applyFilters();
+}
+function applyFilters() {
   var q = document.getElementById('searchBox').value.toLowerCase();
-  filteredData = q ? allData.filter(function (r) {
-    return Object.keys(r).some(function (k) { return String(r[k]).toLowerCase().indexOf(q) !== -1; });
-  }) : allData.slice();
+  var cat = document.getElementById('catFilter').value;
+  var ips = parseList('fIps'), doms = parseList('fDomains'), subs = parseList('fSubjects');
+
+  filteredData = allData.filter(function (r) {
+    if (q && !Object.keys(r).some(function (k) { return String(r[k]).toLowerCase().indexOf(q) !== -1; })) return false;
+    if (cat && r.category !== cat) return false;
+    if (ips.length) {
+      var hay = ((r.ip || '') + ' ' + (r.allIPs || '')).toLowerCase();
+      if (!ips.some(function (v) { return hay.indexOf(v) !== -1; })) return false;
+    }
+    if (doms.length) {
+      var d = (r.fromDomain || '').toLowerCase();
+      if (!doms.some(function (v) { return d.indexOf(v) !== -1; })) return false;
+    }
+    if (subs.length) {
+      var s = (r.subject || '').toLowerCase();
+      if (!subs.some(function (v) { return s.indexOf(v) !== -1; })) return false;
+    }
+    return true;
+  });
   renderTable(filteredData);
 }
 
 /* ═══════════ COPY / EXPORT ═══════════ */
-function selectedFields() {
-  return Array.prototype.map.call(document.querySelectorAll('#fieldList input:checked'), function (b) { return b.value; });
-}
-function toCSV() {
-  var keys = selectedFields(); if (!keys.length) keys = Object.keys(filteredData[0]);
-  return [keys.join(',')].concat(filteredData.map(function (r) {
+function toCSV(rows) {
+  rows = rows && rows.length ? rows : filteredData;
+  if (!rows.length) return '';
+  var keys = selectedFields(); if (!keys.length) keys = Object.keys(rows[0]);
+  return [keys.join(',')].concat(rows.map(function (r) {
     return keys.map(function (k) { return '"' + String(r[k] == null ? '' : r[k]).replace(/"/g, '""') + '"'; }).join(',');
   })).join('\n');
 }
@@ -468,17 +621,18 @@ function copyText(text, ok) {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { showToast(ok); });
   else { var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast(ok); }
 }
-function copyCSV() { if (!filteredData.length) return showToast('No data'); copyText(toCSV(), '📋 CSV copied (' + filteredData.length + ' rows)'); }
+function copyCSV() { if (!filteredData.length) return showToast('No data'); copyText(toCSV(filteredData), '📋 CSV copied (' + filteredData.length + ' rows)'); }
 function copyIPs() { var a = uniq(filteredData.map(function (r) { return r.ip; })); copyText(a.join('\n'), '📌 ' + a.length + ' IPs copied'); }
 function copyDomains() { var a = uniq(filteredData.map(function (r) { return r.fromDomain; })); copyText(a.join('\n'), '🌐 ' + a.length + ' domains copied'); }
 function copyEmails() { var a = uniq(filteredData.map(function (r) { return r.fromEmail; })); copyText(a.join('\n'), '✉️ ' + a.length + ' emails copied'); }
 function uniq(a) { var s = {}; a.forEach(function (x) { if (x) s[x] = 1; }); return Object.keys(s); }
+function safeName(s) { return String(s || 'file').replace(/[^a-z0-9._-]+/gi, '_').substring(0, 60); }
 function downloadCSV() {
   if (!filteredData.length) return showToast('No data');
-  var blob = new Blob(['\ufeff' + toCSV()], { type: 'text/csv;charset=utf-8' });
+  var blob = new Blob(['\ufeff' + toCSV(filteredData)], { type: 'text/csv;charset=utf-8' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'mailextract-' + (active || 'bot') + '-' + Date.now() + '.csv';
+  a.download = safeName(active || 'bot') + '-' + Date.now() + '.csv';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
@@ -501,6 +655,7 @@ function showToast(msg, ms) {
 }
 
 /* ═══════════ INIT ═══════════ */
+initTheme();
 renderBots();
 if (CLIENT_ID.indexOf('PASTE_YOUR') === 0) showToast('⚠ Put your Client ID at the top of the script', 8000);
 </script>
