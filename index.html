@@ -79,10 +79,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 .stat-lbl{font-size:10px;color:var(--muted);margin-top:2px}
 .c-ok{color:var(--green)}.c-fail{color:var(--red)}.c-warn{color:var(--amber)}.c-info{color:var(--cyan)}
 .twrap{flex:1;overflow:auto}
-table{width:100%;border-collapse:collapse;font-size:11.5px}
+table{width:100%;border-collapse:collapse;font-size:11.5px;user-select:none}
 th{background:var(--s1);color:var(--muted);font-weight:500;font-size:10.5px;text-align:left;padding:9px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:2;white-space:nowrap;cursor:pointer}
-td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:text}
+td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:cell}
 tbody tr:hover{background:var(--s2)}
+td.sel{background:rgba(99,102,241,.35)!important;outline:1px solid var(--accent);outline-offset:-1px}
 .mono{font-family:var(--mono);font-size:11px}
 .b-auth{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-family:var(--mono);font-weight:600}
 .b-pass{background:#052814;color:#4ade80;border:1px solid #166534}
@@ -142,35 +143,8 @@ tbody tr:hover{background:var(--s2)}
     <div style="font-size:10px;color:var(--muted);line-height:1.5">Tip: leave "All" to fetch a natural mix of Inbox + Spam etc, then use the <b>Category filter</b> above the table to view just one.</div>
   </div>
 
-  <div class="sec">
-    <h3>Fields (CSV)</h3>
-    <div class="chiprow">
-      <button class="chip-action" onclick="setAllFields(true)">✅ Select all</button>
-      <button class="chip-action" onclick="setAllFields(false)">◻ Clear</button>
-    </div>
-    <div class="chips" id="fieldChips">
-      <span class="chip on" data-value="category">Category</span>
-      <span class="chip on" data-value="ip">IP</span>
-      <span class="chip on" data-value="fromName">From name</span>
-      <span class="chip on" data-value="fromEmail">From email</span>
-      <span class="chip on" data-value="fromDomain">From domain</span>
-      <span class="chip on" data-value="subject">Subject</span>
-      <span class="chip on" data-value="to">To</span>
-      <span class="chip on" data-value="spf">SPF</span>
-      <span class="chip on" data-value="dkim">DKIM</span>
-      <span class="chip on" data-value="dmarc">DMARC</span>
-      <span class="chip" data-value="allIPs">All IPs</span>
-      <span class="chip" data-value="cc">Cc</span>
-      <span class="chip" data-value="replyTo">Reply-To</span>
-      <span class="chip" data-value="returnPath">Return-Path</span>
-      <span class="chip" data-value="messageId">Message-ID</span>
-      <span class="chip" data-value="date">Date</span>
-    </div>
-  </div>
-
   <button class="btn primary" id="extractBtn" onclick="runExtraction()">⚡ Extract Emails</button>
   <button class="btn danger" id="cancelBtn" style="display:none" onclick="cancelExtraction()">✖ Cancel Extract</button>
-  <button class="btn" onclick="extractAllFields()">⚡ Extract with all fields</button>
 </aside>
 
 <main>
@@ -189,8 +163,10 @@ tbody tr:hover{background:var(--s2)}
       <option value="Other">Other</option>
     </select>
     <button class="tbtn" id="moreFiltersBtn" onclick="toggleFiltersPanel()">🔍 More filters</button>
+    <button class="tbtn" id="columnsBtn" onclick="toggleColumnsPanel()">🧱 Columns</button>
     <span class="badge" id="countBadge">0 rows</span>
-    <button class="tbtn" onclick="copyCSV()">📋 CSV</button>
+    <button class="tbtn primary" onclick="copySelection()">📋 Copy selection</button>
+    <button class="tbtn" onclick="copyCSV()">📋 All as CSV</button>
     <button class="tbtn" onclick="copyIPs()">📌 IPs</button>
     <button class="tbtn" onclick="copyDomains()">🌐 Domains</button>
     <button class="tbtn" onclick="copyEmails()">✉️ Emails</button>
@@ -215,7 +191,17 @@ tbody tr:hover{background:var(--s2)}
     </div>
   </div>
 
-  <div class="hint" id="tableHint" style="display:none">Tip: drag + Ctrl+C to copy a selection · <b>Ctrl+Click a column header</b> to copy that whole column · <b>Ctrl+Click a row</b> to copy that row · Double-click a row for full details.</div>
+  <div class="filters-panel" id="columnsPanel">
+    <div class="fp-col" style="flex:1 1 100%">
+      <div class="chiprow">
+        <button class="chip-action" onclick="setAllColumns(true)">✅ Select all</button>
+        <button class="chip-action" onclick="setAllColumns(false)">◻ Minimal view</button>
+      </div>
+      <div class="chips" id="columnChips"></div>
+    </div>
+  </div>
+
+  <div class="hint" id="tableHint" style="display:none">Tip: click a cell and drag to select a range (like Excel), then press <b>Ctrl+C</b> or use "Copy selection" · <b>Ctrl+Click a column header</b> to select the whole column.</div>
 
   <div class="stats" id="stats" style="display:none">
     <div class="stat"><div class="stat-num" id="sTot">0</div><div class="stat-lbl">Emails</div></div>
@@ -269,19 +255,42 @@ function initTheme() {
   document.getElementById('themeBtn').textContent = saved === 'light' ? '☀️ Light' : '🌙 Dark';
 }
 
-/* ═══════════ FIELD CHIPS ═══════════ */
+/* ═══════════ TABLE COLUMNS (what actually shows in the table) ═══════════ */
+var visibleCols = JSON.parse(localStorage.getItem('mx_cols') || 'null') || ['result', 'category', 'ip', 'fromDomain', 'fromName', 'fromEmail', 'subject', 'to', 'spf', 'dkim', 'dmarc'];
+
+function renderColumnChips() {
+  document.getElementById('columnChips').innerHTML = ALL_COLS.map(function (c) {
+    return '<span class="chip' + (visibleCols.indexOf(c.key) !== -1 ? ' on' : '') + '" data-col="' + c.key + '">' + c.label + '</span>';
+  }).join('');
+}
 document.addEventListener('click', function (e) {
-  if (e.target.classList && e.target.classList.contains('chip')) e.target.classList.toggle('on');
+  var chip = e.target.closest && e.target.closest('.chip[data-col]');
+  if (chip) toggleColumn(chip.getAttribute('data-col'));
 });
-function setAllFields(on) {
-  document.querySelectorAll('#fieldChips .chip').forEach(function (c) { c.classList.toggle('on', on); });
+function toggleColumn(key) {
+  var i = visibleCols.indexOf(key);
+  if (i === -1) visibleCols.push(key);
+  else {
+    if (visibleCols.length === 1) return showToast('⚠ Keep at least one column visible');
+    visibleCols.splice(i, 1);
+  }
+  localStorage.setItem('mx_cols', JSON.stringify(visibleCols));
+  renderColumnChips();
+  if (allData.length) renderTable(filteredData);
 }
-function selectedFields() {
-  return Array.prototype.map.call(document.querySelectorAll('#fieldChips .chip.on'), function (c) { return c.getAttribute('data-value'); });
+function setAllColumns(on) {
+  visibleCols = on ? ALL_COLS.map(function (c) { return c.key; }) : ['result', 'category', 'ip', 'subject'];
+  localStorage.setItem('mx_cols', JSON.stringify(visibleCols));
+  renderColumnChips();
+  if (allData.length) renderTable(filteredData);
 }
-function extractAllFields() {
-  setAllFields(true);
-  runExtraction();
+function activeCols() {
+  return ALL_COLS.filter(function (c) { return visibleCols.indexOf(c.key) !== -1; });
+}
+function toggleColumnsPanel() {
+  var p = document.getElementById('columnsPanel');
+  var open = p.classList.toggle('open');
+  document.getElementById('columnsBtn').classList.toggle('active', open);
 }
 
 /* ═══════════ GOOGLE LOGIN (popup) ═══════════ */
@@ -499,18 +508,24 @@ function extractName(raw) { var m = raw.match(/^(.+?)\s*</); return m ? m[1].rep
 function extractDomain(e) { var p = e.split('@'); return p.length > 1 ? p[1].toLowerCase() : ''; }
 
 /* ═══════════ TABLE ═══════════ */
-var COLS = [
-  { key: 'result',     label: 'Result',  w: '150px', render: rResult },
-  { key: 'category',   label: 'Cat',     w: '70px',  render: rCat },
-  { key: 'ip',         label: 'IP',      w: '140px', render: rCopy },
-  { key: 'fromDomain', label: 'Domain',  w: '170px', render: rDomain },
-  { key: 'fromName',   label: 'Name',    w: '140px', render: rText },
-  { key: 'fromEmail',  label: 'Email',   w: '200px', render: rCopy },
-  { key: 'subject',    label: 'Subject', w: '240px', render: rText },
-  { key: 'to',         label: 'To',      w: '140px', render: rText },
-  { key: 'spf',        label: 'SPF',     w: '90px',  render: rAuth },
-  { key: 'dkim',       label: 'DKIM',    w: '90px',  render: rAuth },
-  { key: 'dmarc',      label: 'DMARC',   w: '90px',  render: rAuth }
+var ALL_COLS = [
+  { key: 'result',     label: 'Result',      w: '150px', render: rResult },
+  { key: 'category',   label: 'Cat',         w: '70px',  render: rCat },
+  { key: 'ip',         label: 'IP',          w: '140px', render: rCopy },
+  { key: 'fromDomain', label: 'Domain',      w: '170px', render: rDomain },
+  { key: 'fromName',   label: 'Name',        w: '140px', render: rText },
+  { key: 'fromEmail',  label: 'Email',       w: '200px', render: rCopy },
+  { key: 'subject',    label: 'Subject',     w: '240px', render: rText },
+  { key: 'to',         label: 'To',          w: '140px', render: rText },
+  { key: 'spf',        label: 'SPF',         w: '90px',  render: rAuth },
+  { key: 'dkim',       label: 'DKIM',        w: '90px',  render: rAuth },
+  { key: 'dmarc',      label: 'DMARC',       w: '90px',  render: rAuth },
+  { key: 'allIPs',     label: 'All IPs',     w: '170px', render: rCopy },
+  { key: 'cc',         label: 'Cc',          w: '140px', render: rText },
+  { key: 'replyTo',    label: 'Reply-To',    w: '160px', render: rText },
+  { key: 'returnPath', label: 'Return-Path', w: '160px', render: rText },
+  { key: 'messageId',  label: 'Message-ID',  w: '200px', render: rCopy },
+  { key: 'date',       label: 'Date',        w: '170px', render: rText }
 ];
 
 function renderAll() {
@@ -547,43 +562,100 @@ function updateStats() {
   fa.className = 'stat-num ' + (fullAuthPct >= 80 ? 'c-ok' : fullAuthPct >= 50 ? 'c-warn' : 'c-fail');
 }
 function renderTable(data) {
+  selAnchor = null; selEnd = null;   // data changed/sorted/filtered: drop any stale selection
   document.getElementById('countBadge').textContent = data.length + ' rows';
   if (!data.length) {
     document.getElementById('thead').innerHTML = '';
     document.getElementById('tbody').innerHTML = '<tr><td style="text-align:center;padding:28px;color:var(--muted)">No results</td></tr>';
     return;
   }
-  var head = '<tr>' + COLS.map(function (c) {
-    return '<th style="width:' + c.w + '" onclick="headerClick(event,\'' + c.key + '\')" title="Click to sort · Ctrl+Click to copy whole column">' + c.label + ' ' + (c.key === sortKey ? (sortAsc ? '▲' : '▼') : '↕') + '</th>';
+  var cols = activeCols();
+  var head = '<tr>' + cols.map(function (c, ci) {
+    return '<th style="width:' + c.w + '" onclick="headerClick(event,\'' + c.key + '\',' + ci + ')" title="Click to sort · Ctrl+Click to select the whole column">' + c.label + ' ' + (c.key === sortKey ? (sortAsc ? '▲' : '▼') : '↕') + '</th>';
   }).join('') + '</tr>';
   document.getElementById('thead').innerHTML = head;
-  document.getElementById('tbody').innerHTML = data.map(function (row) {
-    var idx = allData.indexOf(row);
-    return '<tr ondblclick="openDetail(' + idx + ')" title="Click: select text · Ctrl+Click: copy row · Double-click: full details">' + COLS.map(function (c) {
-      return '<td onclick="cellClick(event,' + idx + ')" style="max-width:' + c.w + '">' + c.render(row[c.key] || '', row) + '</td>';
+  document.getElementById('tbody').innerHTML = data.map(function (row, ri) {
+    return '<tr>' + cols.map(function (c, ci) {
+      return '<td data-r="' + ri + '" data-c="' + ci + '" style="max-width:' + c.w + '">' + c.render(row[c.key] || '', row) + '</td>';
     }).join('') + '</tr>';
   }).join('');
 }
 
-/* ═══════════ CTRL+CLICK COPY (column / row) ═══════════ */
-function headerClick(e, key) {
+/* ═══════════ EXCEL-STYLE CELL SELECTION ═══════════ */
+var selAnchor = null, selEnd = null, isSelecting = false;
+
+function headerClick(e, key, colIndex) {
   if (e.ctrlKey || e.metaKey) {
     e.preventDefault();
-    if (key === 'result') return showToast('⚠ "Result" is computed, not a raw field');
-    var vals = filteredData.map(function (r) { return r[key] == null ? '' : String(r[key]); });
-    copyText(vals.join('\n'), '📌 Column "' + key + '" copied (' + vals.length + ' rows)');
+    if (!filteredData.length) return;
+    selAnchor = { r: 0, c: colIndex };
+    selEnd = { r: filteredData.length - 1, c: colIndex };
+    paintSelection();
+    showToast('Column selected — Ctrl+C or "Copy selection" to copy');
     return;
   }
   sortBy(key);
 }
-function cellClick(e, idx) {
-  if (!(e.ctrlKey || e.metaKey)) return; // plain click: let native text selection happen
-  e.preventDefault();
-  var row = allData[idx]; if (!row) return;
-  var keys = COLS.filter(function (c) { return c.key !== 'result'; }).map(function (c) { return c.key; });
-  var line = keys.map(function (k) { return row[k] == null ? '' : String(row[k]); }).join('\t');
-  copyText(line, '📋 Row copied (tab-separated)');
+
+function cellAt(target) { return target && target.closest ? target.closest('td[data-r]') : null; }
+
+(function initSelection() {
+  var tbody = document.getElementById('tbody');
+  tbody.addEventListener('mousedown', function (e) {
+    var td = cellAt(e.target); if (!td) return;
+    isSelecting = true;
+    selAnchor = { r: +td.dataset.r, c: +td.dataset.c };
+    selEnd = selAnchor;
+    paintSelection();
+    e.preventDefault();
+  });
+  tbody.addEventListener('mouseover', function (e) {
+    if (!isSelecting) return;
+    var td = cellAt(e.target); if (!td) return;
+    selEnd = { r: +td.dataset.r, c: +td.dataset.c };
+    paintSelection();
+  });
+  document.addEventListener('mouseup', function () { isSelecting = false; });
+})();
+
+function paintSelection() {
+  if (!selAnchor) { document.querySelectorAll('#tbody td.sel').forEach(function (td) { td.classList.remove('sel'); }); return; }
+  var minR = Math.min(selAnchor.r, selEnd.r), maxR = Math.max(selAnchor.r, selEnd.r);
+  var minC = Math.min(selAnchor.c, selEnd.c), maxC = Math.max(selAnchor.c, selEnd.c);
+  document.querySelectorAll('#tbody td[data-r]').forEach(function (td) {
+    var r = +td.dataset.r, c = +td.dataset.c;
+    td.classList.toggle('sel', r >= minR && r <= maxR && c >= minC && c <= maxC);
+  });
 }
+
+function selectionText() {
+  if (!selAnchor) return null;
+  var cols = activeCols();
+  var minR = Math.min(selAnchor.r, selEnd.r), maxR = Math.max(selAnchor.r, selEnd.r);
+  var minC = Math.min(selAnchor.c, selEnd.c), maxC = Math.max(selAnchor.c, selEnd.c);
+  var lines = [];
+  for (var r = minR; r <= maxR; r++) {
+    var row = filteredData[r]; if (!row) continue;
+    var vals = [];
+    for (var c = minC; c <= maxC; c++) {
+      var col = cols[c];
+      vals.push(col && col.key !== 'result' ? String(row[col.key] == null ? '' : row[col.key]) : '');
+    }
+    lines.push(vals.join('\t'));
+  }
+  return { text: lines.join('\n'), rows: maxR - minR + 1, colsN: maxC - minC + 1 };
+}
+function copySelection() {
+  var sel = selectionText();
+  if (!sel) return showToast('⚠ Select some cells first — click and drag');
+  copyText(sel.text, '📋 Copied ' + sel.rows + '×' + sel.colsN + ' cells');
+}
+document.addEventListener('keydown', function (e) {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+    var sel = selectionText();
+    if (sel) { e.preventDefault(); copyText(sel.text, '📋 Copied ' + sel.rows + '×' + sel.colsN + ' cells'); }
+  }
+});
 function rResult(v, row) {
   var fullAuth = row.spf === 'pass' && row.dkim === 'pass' && row.dmarc === 'pass';
   if (row.category === 'Spam') return '<span class="b-auth b-fail">❌ Spam</span>';
@@ -658,7 +730,8 @@ function applyFilters() {
 function toCSV(rows) {
   rows = rows && rows.length ? rows : filteredData;
   if (!rows.length) return '';
-  var keys = selectedFields(); if (!keys.length) keys = Object.keys(rows[0]);
+  var keys = activeCols().filter(function (c) { return c.key !== 'result'; }).map(function (c) { return c.key; });
+  if (!keys.length) keys = Object.keys(rows[0]);
   return [keys.join(',')].concat(rows.map(function (r) {
     return keys.map(function (k) { return '"' + String(r[k] == null ? '' : r[k]).replace(/"/g, '""') + '"'; }).join(',');
   })).join('\n');
@@ -682,18 +755,7 @@ function downloadCSV() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-/* ═══════════ DETAIL / UTILS ═══════════ */
-function openDetail(idx) {
-  var r = allData[idx]; if (!r) return;
-  var score = (r.spf === 'pass' ? 1 : 0) + (r.dkim === 'pass' ? 1 : 0) + (r.dmarc === 'pass' ? 1 : 0);
-  alert([
-    'Category: ' + r.category, 'From: ' + r.fromName + ' <' + r.fromEmail + '>', 'Domain: ' + (r.fromDomain || '-'),
-    'IP: ' + (r.ip || '-'), 'All IPs: ' + (r.allIPs || '-'), 'Subject: ' + (r.subject || '-'), 'To: ' + (r.to || '-'),
-    'Reply-To: ' + (r.replyTo || '-'), 'Return-Path: ' + (r.returnPath || '-'), 'Message-ID: ' + (r.messageId || '-'),
-    'Date: ' + (r.date || '-'), 'Auth Score: ' + score + '/3  SPF=' + r.spf + ' DKIM=' + r.dkim + ' DMARC=' + r.dmarc,
-    '', 'Snippet: ' + (r.snippet || '-')
-  ].join('\n'));
-}
+/* ═══════════ UTILS ═══════════ */
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 function showToast(msg, ms) {
   var t = document.getElementById('toast'); t.innerHTML = msg; t.classList.add('show');
@@ -703,6 +765,7 @@ function showToast(msg, ms) {
 /* ═══════════ INIT ═══════════ */
 initTheme();
 renderBots();
+renderColumnChips();
 if (CLIENT_ID.indexOf('PASTE_YOUR') === 0) showToast('⚠ Put your Client ID at the top of the script', 8000);
 </script>
 </body>
