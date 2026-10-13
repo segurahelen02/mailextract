@@ -31,7 +31,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .dot.loading{background:var(--amber);animation:pulse .8s infinite}
 @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
 .body{display:flex;flex:1;overflow:hidden}
-aside{width:290px;background:var(--s1);border-right:1px solid var(--border);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:18px}
+.controlbar{background:var(--s1);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;flex-direction:column;gap:10px}
+.cb-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cb-label{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;flex-shrink:0}
+.cb-group{display:flex;align-items:center;gap:6px}
+.cb-group label{font-size:10px;color:var(--muted);white-space:nowrap}
+.cb-group input,.cb-group select{width:auto;padding:7px 9px}
+.bot-row{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:200px}
+.cb-hint{font-size:10px;color:var(--muted);margin-left:auto}
 main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .sec h3{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;text-transform:uppercase}
 .bot-item{display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--s2);border:1px solid var(--border);border-radius:6px;margin-bottom:5px;font-size:11px}
@@ -85,6 +92,10 @@ th{background:var(--s1);color:var(--muted);font-weight:500;font-size:10.5px;text
 td{padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:cell}
 tbody tr:hover{background:var(--s2)}
 td.sel{background:rgba(99,102,241,.35)!important;outline:1px solid var(--accent);outline-offset:-1px}
+th.pin,td.pin{position:sticky;left:0;cursor:pointer}
+th.pin{z-index:4;background:var(--s1)}
+td.pin{z-index:1;background:var(--bg);cursor:default;color:var(--muted)}
+tbody tr:hover td.pin{background:var(--s2)}
 .mono{font-family:var(--mono);font-size:11px}
 .b-auth{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-family:var(--mono);font-weight:600}
 .b-pass{background:#052814;color:#4ade80;border:1px solid #166534}
@@ -119,37 +130,30 @@ td.sel{background:rgba(99,102,241,.35)!important;outline:1px solid var(--accent)
   </div>
 </div>
 
-<div class="body">
-<aside>
-
-  <div class="sec">
-    <h3>Bot Accounts</h3>
-    <div id="botList"></div>
-    <button class="btn" style="width:100%;margin-top:6px" onclick="addBot()">＋ Add bot</button>
+<div class="controlbar">
+  <div class="cb-row">
+    <span class="cb-label">Bots</span>
+    <div id="botList" class="bot-row"></div>
+    <button class="tbtn" onclick="addBot()">＋ Add bot</button>
   </div>
-
-  <div class="sec">
-    <h3>Extraction</h3>
-    <div class="row2">
-      <div class="field"><label>Start from</label><input type="number" id="startFrom" value="1" min="1"></div>
-      <div class="field"><label>Count</label><input type="number" id="countInput" value="40" min="1" max="500"></div>
-    </div>
-    <div class="field"><label>Search scope</label>
+  <div class="cb-row">
+    <div class="cb-group"><label>Start from</label><input type="number" id="startFrom" value="1" min="1"></div>
+    <div class="cb-group"><label>Count</label><input type="number" id="countInput" value="40" min="1" max="500"></div>
+    <div class="cb-group"><label>Scope</label>
       <select id="categorySelect">
         <option value="All" selected>All (recommended — mix of everything)</option>
         <option>Inbox</option><option>Spam</option>
         <option>Promotions</option><option>Updates</option><option>Social</option><option>Sent</option>
       </select>
     </div>
-    <div style="font-size:10px;color:var(--muted);line-height:1.5">Tip: leave "All" to fetch a natural mix of Inbox + Spam etc, then use the <b>Category filter</b> above the table to view just one.</div>
+    <button class="btn primary" id="extractBtn" onclick="runExtraction()" style="width:auto">⚡ Extract Emails</button>
+    <button class="btn" id="multiExtractBtn" onclick="runMultiExtraction()" style="width:auto">⚡⚡ Extract selected bots</button>
+    <button class="btn danger" id="cancelBtn" style="display:none;width:auto" onclick="cancelExtraction()">✖ Cancel Extract</button>
+    <span class="cb-hint">Tick ☑ next to bots to run several at once, each tagged with its own label.</span>
   </div>
+</div>
 
-  <button class="btn primary" id="extractBtn" onclick="runExtraction()">⚡ Extract Emails</button>
-  <button class="btn" id="multiExtractBtn" onclick="runMultiExtraction()">⚡⚡ Extract selected bots</button>
-  <button class="btn danger" id="cancelBtn" style="display:none" onclick="cancelExtraction()">✖ Cancel Extract</button>
-  <div style="font-size:10px;color:var(--muted);line-height:1.5">Tick the ☑ next to bots above, then "Extract selected bots" pulls from all of them at once (in parallel) — each row gets a "Bot" column with that bot's label.</div>
-</aside>
-
+<div class="body">
 <main>
   <div class="pbar" id="pbar"><div class="pbar-fill"></div></div>
 
@@ -198,7 +202,7 @@ td.sel{background:rgba(99,102,241,.35)!important;outline:1px solid var(--accent)
     <div class="fp-col" style="flex:1 1 100%">
       <div class="chiprow">
         <button class="chip-action" onclick="setAllColumns(true)">✅ Select all</button>
-        <button class="chip-action" onclick="setAllColumns(false)">◻ Minimal view</button>
+        <button class="chip-action" onclick="setAllColumns(false)">◻ Deselect all</button>
       </div>
       <div class="chips" id="columnChips"></div>
     </div>
