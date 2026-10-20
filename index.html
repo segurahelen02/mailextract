@@ -132,16 +132,12 @@ tbody tr:hover td.pin{background:var(--s2)}
 
 <div class="controlbar">
   <div class="cb-row">
-    <span class="cb-label">Bots</span>
-    <div id="botList" class="bot-row"></div>
-    <button class="tbtn" onclick="addBot()">＋ Add bot</button>
-  </div>
-  <div class="cb-row">
-    <div class="cb-group"><label>Start from</label><input type="number" id="startFrom" value="1" min="1"></div>
-    <div class="cb-group"><label>Count</label><input type="number" id="countInput" value="40" min="1" max="500"></div>
+    <button class="tbtn" id="botsBtn" onclick="toggleBotsPanel()">👤 Bots (<span id="botCountBadge">0</span>)</button>
+    <div class="cb-group"><label>Start from</label><input type="number" id="startFrom" value="1" min="1" style="width:64px"></div>
+    <div class="cb-group"><label>Count</label><input type="number" id="countInput" value="40" min="1" max="500" style="width:72px"></div>
     <div class="cb-group"><label>Scope</label>
-      <select id="categorySelect">
-        <option value="All" selected>All (recommended — mix of everything)</option>
+      <select id="categorySelect" style="width:auto">
+        <option value="All" selected>All (mix of everything)</option>
         <option>Inbox</option><option>Spam</option>
         <option>Promotions</option><option>Updates</option><option>Social</option><option>Sent</option>
       </select>
@@ -149,7 +145,15 @@ tbody tr:hover td.pin{background:var(--s2)}
     <button class="btn primary" id="extractBtn" onclick="runExtraction()" style="width:auto">⚡ Extract Emails</button>
     <button class="btn" id="multiExtractBtn" onclick="runMultiExtraction()" style="width:auto">⚡⚡ Extract selected bots</button>
     <button class="btn danger" id="cancelBtn" style="display:none;width:auto" onclick="cancelExtraction()">✖ Cancel Extract</button>
-    <span class="cb-hint">Tick ☑ next to bots to run several at once, each tagged with its own label.</span>
+  </div>
+  <div class="filters-panel" id="botsPanel">
+    <div class="fp-col" style="flex:1 1 100%">
+      <div id="botList" class="bot-row"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+        <button class="tbtn" onclick="addBot()">＋ Add bot</button>
+        <span class="cb-hint" style="margin-left:0">Tick ☑ to run several at once, each tagged with its own label.</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -173,11 +177,6 @@ tbody tr:hover td.pin{background:var(--s2)}
     <button class="tbtn" id="columnsBtn" onclick="toggleColumnsPanel()">🧱 Columns</button>
     <span class="badge" id="countBadge">0 rows</span>
     <button class="tbtn primary" onclick="copySelection()">📋 Copy selection</button>
-    <button class="tbtn" onclick="copyCSV()">📋 All as CSV</button>
-    <button class="tbtn" onclick="copyIPs()">📌 IPs</button>
-    <button class="tbtn" onclick="copyDomains()">🌐 Domains</button>
-    <button class="tbtn" onclick="copyEmails()">✉️ Emails</button>
-    <button class="tbtn primary" onclick="downloadCSV()">⬇ CSV file</button>
   </div>
 
   <div class="filters-panel" id="filtersPanel">
@@ -238,7 +237,7 @@ tbody tr:hover td.pin{background:var(--s2)}
 
 <script>
 /* ═══════════ CONFIG: paste your OAuth Client ID here ═══════════ */
-var CLIENT_ID = '957802286757-qmrenolcl2gu7kcpbptfkbmfkbbg5c8o.apps.googleusercontent.com';
+var CLIENT_ID = 'PASTE_YOUR_CLIENT_ID_HERE.apps.googleusercontent.com';
 var SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
 var GMAIL = 'https://gmail.googleapis.com/gmail/v1/users/me/';
 
@@ -298,6 +297,11 @@ function toggleColumnsPanel() {
   var p = document.getElementById('columnsPanel');
   var open = p.classList.toggle('open');
   document.getElementById('columnsBtn').classList.toggle('active', open);
+}
+function toggleBotsPanel() {
+  var p = document.getElementById('botsPanel');
+  var open = p.classList.toggle('open');
+  document.getElementById('botsBtn').classList.toggle('active', open);
 }
 
 /* ═══════════ GOOGLE LOGIN (popup) ═══════════ */
@@ -365,6 +369,7 @@ function deleteBot(e, i) {
 function saveBots() { localStorage.setItem('mx_bots', JSON.stringify(bots)); }
 
 function renderBots() {
+  document.getElementById('botCountBadge').textContent = bots.length;
   var el = document.getElementById('botList');
   if (!bots.length) { el.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:6px 0">No bots yet</div>'; return; }
   el.innerHTML = bots.map(function (b, i) {
